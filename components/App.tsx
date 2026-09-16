@@ -26,37 +26,47 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
 
-    const [txnsRes, catsRes, settingsRes, reflRes, subsRes] = await Promise.all([
-      supabase.from('transactions').select('*').order('date', { ascending: false }),
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('settings').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('reflections').select('*').order('created_at', { ascending: false }),
-      supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
-    ]);
+      const [txnsRes, catsRes, settingsRes, reflRes, subsRes] = await Promise.all([
+        supabase.from('transactions').select('*').order('date', { ascending: false }),
+        supabase.from('categories').select('*').order('sort_order'),
+        supabase.from('settings').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('reflections').select('*').order('created_at', { ascending: false }),
+        supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
+      ]);
 
-    if (txnsRes.data) setTransactions(txnsRes.data as Transaction[]);
+      const firstError = txnsRes.error || catsRes.error || settingsRes.error || reflRes.error || subsRes.error;
+      if (firstError) throw firstError;
 
-    if (catsRes.data && catsRes.data.length > 0) {
-      setCategories(catsRes.data.map((c) => c.name));
-    } else {
-      // First login: seed default categories
-      const rows = DEFAULT_CATEGORIES.map((name, i) => ({ user_id: user.id, name, sort_order: i }));
-      await supabase.from('categories').insert(rows);
-      setCategories(DEFAULT_CATEGORIES);
+      if (txnsRes.data) setTransactions(txnsRes.data as Transaction[]);
+
+      if (catsRes.data && catsRes.data.length > 0) {
+        setCategories(catsRes.data.map((c) => c.name));
+      } else {
+        const rows = DEFAULT_CATEGORIES.map((name, i) => ({ user_id: user.id, name, sort_order: i }));
+        const { error: seedError } = await supabase.from('categories').insert(rows);
+        if (seedError) throw seedError;
+        setCategories(DEFAULT_CATEGORIES);
+      }
+
+      if (settingsRes.data) {
+        setMonthlyPot(settingsRes.data.monthly_pot);
+        setApiKey(settingsRes.data.claude_api_key || '');
+      }
+      if (reflRes.data) setReflections(reflRes.data);
+      if (subsRes.data) setFlaggedSubs(subsRes.data);
+    } catch (err: any) {
+      console.error('Failed to load Expensior data:', err);
+      setLoadError(err?.message || 'Something went wrong loading your data.');
+    } finally {
+      setLoading(false);
     }
-
-    if (settingsRes.data) {
-      setMonthlyPot(settingsRes.data.monthly_pot);
-      setApiKey(settingsRes.data.claude_api_key || '');
-    }
-    if (reflRes.data) setReflections(reflRes.data);
-    if (subsRes.data) setFlaggedSubs(subsRes.data);
-    setLoading(false);
   }, [supabase]);
 
   useEffect(() => { load(); }, [load]);
@@ -144,6 +154,19 @@ export default function App() {
 
   if (loading) {
     return <div className="min-h-screen bg-[#1D2C3E] flex items-center justify-center text-[#BDB4C3] text-sm">Loading…</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#1D2C3E] flex items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <p className="text-[#FAF7F2] text-sm mb-2">Couldn&apos;t load your data</p>
+          <p className="text-[#BDB4C3] text-xs mb-4">{loadError}</p>
+          <p className="text-[#BDB4C3] text-xs mb-4">This usually means the database tables haven&apos;t been created yet — run <code>supabase/schema.sql</code> in your Supabase SQL Editor.</p>
+          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[#B56576] text-[#1D2C3E] rounded-lg px-4 py-2 text-xs font-medium">Try again</button>
+        </div>
+      </div>
+    );
   }
 
   return (
