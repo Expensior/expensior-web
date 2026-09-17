@@ -7,14 +7,14 @@ import { DEFAULT_CATEGORIES } from '@/lib/categories';
 import { DEFAULT_THEME } from '@/lib/themes';
 import { computeFridayDigest, computeSundayDigest, mostRecentPastWeekday } from '@/lib/digest';
 import type { Intention } from '@/lib/selfKnowledge';
-import type { NewTransaction, Transaction, RecurringTemplate, Goal, GoalContribution, Digest } from '@/lib/types';
+import type { NewTransaction, Transaction, RecurringTemplate, Goal, GoalContribution, Digest, Category } from '@/lib/types';
 import EditTransactionModal from './EntryZone';
 import EntryFab from './EntryFab';
 import Ledger, { emptyFilter, type LedgerFilter } from './Ledger';
 import Dashboard from './Dashboard';
 import SettingsDrawer from './SettingsDrawer';
 
-async function generateMissingDigests(userId: string, existing: Digest[], transactions: Transaction[]) {
+async function generateMissingDigests(userId: string, existing: Digest[], transactions: Transaction[], enabled: { friday: boolean; sunday: boolean }) {
   const supabase = createClient();
   const now = new Date();
   const fridayCutoff = mostRecentPastWeekday(now, 5, 18);
@@ -24,11 +24,11 @@ async function generateMissingDigests(userId: string, existing: Digest[], transa
   const hasSunday = existing.some((d) => d.kind === 'sunday' && d.period_end === sundayCutoff.toISOString());
 
   const toInsert: any[] = [];
-  if (!hasFriday) {
+  if (!hasFriday && enabled.friday) {
     const content = computeFridayDigest(transactions, fridayCutoff);
     toInsert.push({ user_id: userId, kind: 'friday', period_end: fridayCutoff.toISOString(), spent: content.spent, indulgence_pct: content.indulgence_pct, top_categories: content.top_categories, insight: content.insight });
   }
-  if (!hasSunday) {
+  if (!hasSunday && enabled.sunday) {
     const content = computeSundayDigest(transactions, sundayCutoff);
     toInsert.push({ user_id: userId, kind: 'sunday', period_end: sundayCutoff.toISOString(), spent: content.spent, indulgence_pct: content.indulgence_pct, top_categories: content.top_categories, insight: content.insight });
   }
@@ -43,6 +43,7 @@ export default function App() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [categoryRecords, setCategoryRecords] = useState<Category[]>([]);
   const [monthlyPot, setMonthlyPot] = useState<number | null>(null);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
   const [apiKey, setApiKey] = useState('');
@@ -56,6 +57,10 @@ export default function App() {
   const [digests, setDigests] = useState<Digest[]>([]);
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [lastVisitedAt, setLastVisitedAt] = useState<string | null>(null);
+  const [dailyPromptEnabled, setDailyPromptEnabled] = useState(true);
+  const [dailyPromptHour, setDailyPromptHour] = useState(21);
+  const [fridayDigestEnabled, setFridayDigestEnabled] = useState(true);
+  const [sundayWrapEnabled, setSundayWrapEnabled] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -77,7 +82,7 @@ export default function App() {
       const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
         supabase.from('transactions').select('*').order('date', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name').eq('user_id', user.id).maybeSingle(),
+        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name, daily_prompt_enabled, daily_prompt_hour, friday_digest_enabled, sunday_wrap_enabled').eq('user_id', user.id).maybeSingle(),
         supabase.from('reflections').select('*').order('created_at', { ascending: false }),
         supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
         supabase.from('recurring_templates').select('*').order('sort_order'),
@@ -93,11 +98,14 @@ export default function App() {
       if (txnsRes.data) setTransactions(txnsRes.data as Transaction[]);
 
       if (catsRes.data && catsRes.data.length > 0) {
-        setCategories(catsRes.data.map((c) => c.name));
+        const sorted = [...catsRes.data].sort((a, b) => a.sort_order - b.sort_order) as Category[];
+        setCategoryRecords(sorted);
+        setCategories(sorted.map((c) => c.name));
       } else {
         const rows = DEFAULT_CATEGORIES.map((name, i) => ({ user_id: user.id, name, sort_order: i }));
-        const { error: seedError } = await supabase.from('categories').insert(rows);
+        const { data: seeded, error: seedError } = await supabase.from('categories').insert(rows).select();
         if (seedError) throw seedError;
+        if (seeded) setCategoryRecords(seeded as Category[]);
         setCategories(DEFAULT_CATEGORIES);
       }
 
@@ -107,6 +115,10 @@ export default function App() {
         setApiKey(settingsRes.data.claude_api_key || '');
         setLastVisitedAt(settingsRes.data.last_visited_at || null);
         if (settingsRes.data.display_name) setDisplayName(settingsRes.data.display_name);
+        setDailyPromptEnabled(settingsRes.data.daily_prompt_enabled ?? true);
+        setDailyPromptHour(settingsRes.data.daily_prompt_hour ?? 21);
+        setFridayDigestEnabled(settingsRes.data.friday_digest_enabled ?? true);
+        setSundayWrapEnabled(settingsRes.data.sunday_wrap_enabled ?? true);
       }
       if (reflRes.data) setReflections(reflRes.data);
       if (subsRes.data) setFlaggedSubs(subsRes.data);
@@ -122,7 +134,10 @@ export default function App() {
       // Generate any missing Friday/Sunday digests, bounded to their correct
       // past cutoff (not "now"), then merge with whatever's already stored.
       const existingDigests = (digestRes.data || []) as Digest[];
-      const newDigests = await generateMissingDigests(user.id, existingDigests, (txnsRes.data || []) as Transaction[]);
+      const newDigests = await generateMissingDigests(user.id, existingDigests, (txnsRes.data || []) as Transaction[], {
+        friday: settingsRes.data?.friday_digest_enabled ?? true,
+        sunday: settingsRes.data?.sunday_wrap_enabled ?? true,
+      });
       setDigests([...newDigests, ...existingDigests]);
 
       try {
@@ -172,6 +187,34 @@ export default function App() {
     if (!trimmed) return;
     await supabase.from('settings').upsert({ user_id: user.id, display_name: trimmed });
     setDisplayName(trimmed);
+  }
+
+  async function saveDailyPrompt(enabled: boolean, hour: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, daily_prompt_enabled: enabled, daily_prompt_hour: hour });
+    setDailyPromptEnabled(enabled);
+    setDailyPromptHour(hour);
+  }
+
+  async function saveFridayDigestEnabled(enabled: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, friday_digest_enabled: enabled });
+    setFridayDigestEnabled(enabled);
+  }
+
+  async function saveSundayWrapEnabled(enabled: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, sunday_wrap_enabled: enabled });
+    setSundayWrapEnabled(enabled);
+  }
+
+  async function sendFeedback(message: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !message.trim()) return;
+    await supabase.from('feedback').insert({ user_id: user.id, message: message.trim() });
   }
 
   async function addTransaction(t: NewTransaction) {
@@ -271,15 +314,52 @@ export default function App() {
   async function addCategory(name: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || categories.includes(name)) return;
-    await supabase.from('categories').insert({ user_id: user.id, name, sort_order: categories.length });
-    setCategories((prev) => [...prev, name]);
+    const { data } = await supabase.from('categories').insert({ user_id: user.id, name, sort_order: categoryRecords.length }).select().single();
+    if (data) {
+      setCategoryRecords((prev) => [...prev, data as Category]);
+      setCategories((prev) => [...prev, name]);
+    }
   }
 
   async function deleteCategory(name: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('categories').delete().eq('user_id', user.id).eq('name', name);
+    setCategoryRecords((prev) => prev.filter((c) => c.name !== name));
     setCategories((prev) => prev.filter((c) => c !== name));
+  }
+
+  async function renameCategory(id: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    await supabase.from('categories').update({ name: trimmed }).eq('id', id);
+    setCategoryRecords((prev) => prev.map((c) => (c.id === id ? { ...c, name: trimmed } : c)));
+    setCategories((prev) => prev.map((c) => (categoryRecords.find((r) => r.id === id)?.name === c ? trimmed : c)));
+  }
+
+  async function reorderCategory(id: string, direction: 'up' | 'down') {
+    const sorted = [...categoryRecords].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = sorted.findIndex((c) => c.id === id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
+    const [aOrder, bOrder] = [b.sort_order, a.sort_order];
+
+    await Promise.all([
+      supabase.from('categories').update({ sort_order: aOrder }).eq('id', a.id),
+      supabase.from('categories').update({ sort_order: bOrder }).eq('id', b.id),
+    ]);
+
+    const updated = categoryRecords.map((c) => {
+      if (c.id === a.id) return { ...c, sort_order: aOrder };
+      if (c.id === b.id) return { ...c, sort_order: bOrder };
+      return c;
+    }).sort((x, y) => x.sort_order - y.sort_order);
+
+    setCategoryRecords(updated);
+    setCategories(updated.map((c) => c.name));
   }
 
   async function saveMonthlyPot(n: number) {
@@ -452,8 +532,11 @@ export default function App() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         categories={categories}
+        categoryRecords={categoryRecords}
         onAddCategory={addCategory}
         onDeleteCategory={deleteCategory}
+        onRenameCategory={renameCategory}
+        onReorderCategory={reorderCategory}
         monthlyPot={monthlyPot}
         onSaveMonthlyPot={saveMonthlyPot}
         theme={theme}
@@ -465,6 +548,15 @@ export default function App() {
         recurringTemplates={recurringTemplates}
         onAddRecurringTemplate={addRecurringTemplate}
         onDeleteRecurringTemplate={deleteRecurringTemplate}
+        dailyPromptEnabled={dailyPromptEnabled}
+        dailyPromptHour={dailyPromptHour}
+        onSaveDailyPrompt={saveDailyPrompt}
+        fridayDigestEnabled={fridayDigestEnabled}
+        onSaveFridayDigestEnabled={saveFridayDigestEnabled}
+        sundayWrapEnabled={sundayWrapEnabled}
+        onSaveSundayWrapEnabled={saveSundayWrapEnabled}
+        onSendFeedback={sendFeedback}
+        gmailConnected={gmailConnected}
       />
     </div>
   );

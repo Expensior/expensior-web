@@ -46,6 +46,9 @@ create table if not exists settings (
   gmail_refresh_token text, -- server-side ONLY — never selected in client-side queries
   display_name text, -- shown in the "Hello, X" greeting — falls back to email prefix if unset
   last_visited_at timestamptz, -- for the "since you were last here" summary
+  daily_prompt_enabled boolean not null default true,
+  friday_digest_enabled boolean not null default true,
+  sunday_wrap_enabled boolean not null default true,
   daily_prompt_hour int default 21,
   friday_digest_hour int default 18,
   updated_at timestamptz not null default now()
@@ -129,6 +132,13 @@ create table if not exists digests (
   unique (user_id, kind, period_end)
 );
 
+create table if not exists feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Row Level Security: every table only ever shows the logged-in user's own rows
 alter table transactions enable row level security;
 alter table categories enable row level security;
@@ -141,6 +151,7 @@ alter table recurring_templates enable row level security;
 alter table goals enable row level security;
 alter table goal_contributions enable row level security;
 alter table digests enable row level security;
+alter table feedback enable row level security;
 
 create policy "own rows only" on transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on categories for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -153,6 +164,7 @@ create policy "own rows only" on recurring_templates for all using (auth.uid() =
 create policy "own rows only" on goals for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on goal_contributions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on digests for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own rows only" on feedback for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Seed default categories for a brand new user (call this once after first login,
 -- or run manually with your own user_id after signing in the first time)
@@ -223,3 +235,15 @@ create policy "own rows only" on digests for all using (auth.uid() = user_id) wi
 
 -- Migration if you already ran schema.sql before the editable display name existed:
 -- alter table settings add column if not exists display_name text;
+
+-- Migration if you already ran schema.sql before feedback/notification toggles existed:
+-- create table feedback (
+--   id uuid primary key default gen_random_uuid(),
+--   user_id uuid not null references auth.users(id) on delete cascade,
+--   message text not null, created_at timestamptz not null default now()
+-- );
+-- alter table feedback enable row level security;
+-- create policy "own rows only" on feedback for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- alter table settings add column if not exists daily_prompt_enabled boolean not null default true;
+-- alter table settings add column if not exists friday_digest_enabled boolean not null default true;
+-- alter table settings add column if not exists sunday_wrap_enabled boolean not null default true;

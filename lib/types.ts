@@ -29,6 +29,12 @@ export interface RecurringTemplate {
   sort_order: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
 export interface Goal {
   id: string;
   name: string;

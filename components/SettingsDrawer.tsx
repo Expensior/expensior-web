@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { IconX, IconCheck, IconChevronDown } from '@tabler/icons-react';
+import { useState, useRef } from 'react';
+import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { THEMES } from '@/lib/themes';
-import type { RecurringTemplate } from '@/lib/types';
+import type { RecurringTemplate, Category } from '@/lib/types';
 
 export default function SettingsDrawer({
   open,
   onClose,
   categories,
+  categoryRecords,
   onAddCategory,
   onDeleteCategory,
+  onRenameCategory,
+  onReorderCategory,
   monthlyPot,
   onSaveMonthlyPot,
   theme,
@@ -22,12 +25,24 @@ export default function SettingsDrawer({
   recurringTemplates,
   onAddRecurringTemplate,
   onDeleteRecurringTemplate,
+  dailyPromptEnabled,
+  dailyPromptHour,
+  onSaveDailyPrompt,
+  fridayDigestEnabled,
+  onSaveFridayDigestEnabled,
+  sundayWrapEnabled,
+  onSaveSundayWrapEnabled,
+  onSendFeedback,
+  gmailConnected,
 }: {
   open: boolean;
   onClose: () => void;
   categories: string[];
+  categoryRecords: Category[];
   onAddCategory: (name: string) => void;
   onDeleteCategory: (name: string) => void;
+  onRenameCategory: (id: string, newName: string) => void;
+  onReorderCategory: (id: string, direction: 'up' | 'down') => void;
   monthlyPot: number | null;
   onSaveMonthlyPot: (n: number) => void;
   theme: string;
@@ -39,6 +54,15 @@ export default function SettingsDrawer({
   recurringTemplates: RecurringTemplate[];
   onAddRecurringTemplate: (t: Omit<RecurringTemplate, 'id' | 'sort_order'>) => void;
   onDeleteRecurringTemplate: (id: string) => void;
+  dailyPromptEnabled: boolean;
+  dailyPromptHour: number;
+  onSaveDailyPrompt: (enabled: boolean, hour: number) => void;
+  fridayDigestEnabled: boolean;
+  onSaveFridayDigestEnabled: (enabled: boolean) => void;
+  sundayWrapEnabled: boolean;
+  onSaveSundayWrapEnabled: (enabled: boolean) => void;
+  onSendFeedback: (message: string) => void;
+  gmailConnected: boolean;
 }) {
   const [newCat, setNewCat] = useState('');
   const [pot, setPot] = useState(monthlyPot?.toString() || '');
@@ -49,8 +73,14 @@ export default function SettingsDrawer({
   const [recName, setRecName] = useState('');
   const [recAmount, setRecAmount] = useState('');
   const [recCadence, setRecCadence] = useState<'monthly' | 'weekly'>('monthly');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editCatName, setEditCatName] = useState('');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const apiKeySectionRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES.find((t) => t.id === theme);
+  const sortedCats = [...categoryRecords].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <>
@@ -64,6 +94,27 @@ export default function SettingsDrawer({
         </div>
 
         <div className="p-4">
+          <Section title="Tiers">
+            <TierRow
+              name="Getting a feel"
+              tagline="Manual entry, categories, weekly view"
+              active
+            />
+            <TierRow
+              name="Getting curious"
+              tagline="Gmail import, subscription audit"
+              active={gmailConnected}
+              inactiveHint="Connect Gmail from the Gmail tile in Add Expense"
+            />
+            <TierRow
+              name="Master of my domain"
+              tagline="Receipt scan, AI-assisted categorisation"
+              active={!!apiKey}
+              inactiveHint="Add a Claude API key below to activate"
+              onInactiveClick={() => { setEditingKey(true); apiKeySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
+            />
+          </Section>
+
           <Section title="Appearance">
             <button
               onClick={() => setAppearanceOpen((v) => !v)}
@@ -104,12 +155,38 @@ export default function SettingsDrawer({
           </Section>
 
           <Section title="Categories & budget">
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {categories.map((c) => (
-                <span key={c} className="text-[13px] px-2 py-1 rounded-full border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors flex items-center gap-1.5">
-                  {c}
-                  <button onClick={() => onDeleteCategory(c)} className="text-[var(--muted)] hover:text-[var(--danger)]">×</button>
-                </span>
+            <div className="flex flex-col gap-1.5 mb-3">
+              {sortedCats.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)]/60 rounded-lg px-2.5 py-2">
+                  {editingCatId === c.id ? (
+                    <input
+                      autoFocus
+                      value={editCatName}
+                      onChange={(e) => setEditCatName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { onRenameCategory(c.id, editCatName); setEditingCatId(null); }
+                        if (e.key === 'Escape') setEditingCatId(null);
+                      }}
+                      className="flex-1 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sm text-[var(--text)]"
+                    />
+                  ) : (
+                    <span className="flex-1 text-sm text-[var(--text)]">{c.name}</span>
+                  )}
+                  <button onClick={() => onReorderCategory(c.id, 'up')} disabled={i === 0} aria-label="Move up" className="text-[var(--muted)] hover:text-[var(--accent)] disabled:opacity-25 disabled:hover:text-[var(--muted)]">
+                    <IconArrowUp size={14} />
+                  </button>
+                  <button onClick={() => onReorderCategory(c.id, 'down')} disabled={i === sortedCats.length - 1} aria-label="Move down" className="text-[var(--muted)] hover:text-[var(--accent)] disabled:opacity-25 disabled:hover:text-[var(--muted)]">
+                    <IconArrowDown size={14} />
+                  </button>
+                  {editingCatId === c.id ? (
+                    <button onClick={() => { onRenameCategory(c.id, editCatName); setEditingCatId(null); }} className="text-[var(--accent)] text-xs font-medium">Save</button>
+                  ) : (
+                    <button onClick={() => { setEditCatName(c.name); setEditingCatId(c.id); }} aria-label="Rename" className="text-[var(--muted)] hover:text-[var(--accent)]">
+                      <IconPencil size={14} />
+                    </button>
+                  )}
+                  <button onClick={() => onDeleteCategory(c.name)} aria-label="Delete" className="text-[var(--muted)] hover:text-[var(--danger)]">×</button>
+                </div>
               ))}
             </div>
             <div className="flex gap-2 mb-4">
@@ -123,7 +200,7 @@ export default function SettingsDrawer({
             </div>
           </Section>
 
-          <Section title="API and parsing">
+          <Section title="API and parsing" refProp={apiKeySectionRef}>
             <label className="text-[13px] text-[var(--muted)] block mb-1.5">Claude API key</label>
             {!editingKey ? (
               <div className="flex items-center gap-2">
@@ -199,9 +276,66 @@ export default function SettingsDrawer({
             </div>
           </Section>
 
+          <Section title="Notifications">
+            <ToggleRow
+              label="Daily prompt"
+              sublabel="Remind me to log today"
+              checked={dailyPromptEnabled}
+              onChange={(v) => onSaveDailyPrompt(v, dailyPromptHour)}
+            />
+            {dailyPromptEnabled && (
+              <div className="flex justify-between items-center mb-3 pl-0.5">
+                <span className="text-[13px] text-[var(--muted)]">Prompt time</span>
+                <select
+                  value={dailyPromptHour}
+                  onChange={(e) => onSaveDailyPrompt(dailyPromptEnabled, parseInt(e.target.value))}
+                  className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1 text-sm text-[var(--text)]"
+                >
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <option key={h} value={h}>{h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <ToggleRow label="Friday digest" sublabel="Weekly summary" checked={fridayDigestEnabled} onChange={onSaveFridayDigestEnabled} />
+            <ToggleRow label="Sunday wrap" sublabel="Weekend reflection" checked={sundayWrapEnabled} onChange={onSaveSundayWrapEnabled} />
+            <p className="text-[12px] text-[var(--muted)] mt-1">
+              These show up in the Reflect and digest section of your dashboard — not as push notifications or emails yet.
+            </p>
+          </Section>
+
           <Section title="Data and sync">
             <button onClick={onExportCSV} className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sm mb-2">Export as CSV</button>
             <p className="text-[12px] text-[var(--muted)]">Your data lives in Supabase and is reachable from any device you sign into — no manual backup needed.</p>
+          </Section>
+
+          <Section title="Error reporting">
+            {feedbackSent ? (
+              <p className="text-sm text-[var(--positive)]">Thanks — that&apos;s been sent.</p>
+            ) : (
+              <>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Describe what went wrong..."
+                  rows={3}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-2 text-sm text-[var(--text)] mb-2"
+                />
+                <button
+                  onClick={() => {
+                    if (!feedbackText.trim()) return;
+                    onSendFeedback(feedbackText);
+                    setFeedbackText('');
+                    setFeedbackSent(true);
+                    setTimeout(() => setFeedbackSent(false), 4000);
+                  }}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sm mb-2"
+                >
+                  Send report
+                </button>
+                <p className="text-[12px] text-[var(--muted)]">Reports are tied to your account so we can follow up — never shared or sold.</p>
+              </>
+            )}
           </Section>
 
           <Section title="Danger zone" danger>
@@ -223,9 +357,60 @@ export default function SettingsDrawer({
   );
 }
 
-function Section({ title, children, danger }: { title: string; children: React.ReactNode; danger?: boolean }) {
+function ToggleRow({ label, sublabel, checked, onChange }: { label: string; sublabel: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="mb-6">
+    <div className="flex justify-between items-center mb-3">
+      <div>
+        <p className="text-sm text-[var(--text)]">{label}</p>
+        <p className="text-[12px] text-[var(--muted)]">{sublabel}</p>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        aria-label={label}
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0"
+        style={{ background: checked ? 'var(--accent)' : 'var(--surface)' }}
+      >
+        <span
+          className="absolute top-0.5 w-5 h-5 rounded-full bg-[var(--bg)] transition-transform"
+          style={{ transform: checked ? 'translateX(22px)' : 'translateX(2px)' }}
+        />
+      </button>
+    </div>
+  );
+}
+
+function TierRow({
+  name, tagline, active, inactiveHint, onInactiveClick,
+}: {
+  name: string; tagline: string; active: boolean; inactiveHint?: string; onInactiveClick?: () => void;
+}) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm font-medium text-[var(--text)]">{name}</p>
+          <p className="text-[12px] text-[var(--muted)]">{tagline}</p>
+        </div>
+        {active ? (
+          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--positive)' }}>Active</span>
+        ) : (
+          <button
+            onClick={onInactiveClick}
+            className="text-[11px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+            disabled={!onInactiveClick}
+          >
+            Not active
+          </button>
+        )}
+      </div>
+      {!active && inactiveHint && <p className="text-[11px] text-[var(--muted)] mt-1">{inactiveHint}</p>}
+    </div>
+  );
+}
+
+function Section({ title, children, danger, refProp }: { title: string; children: React.ReactNode; danger?: boolean; refProp?: React.RefObject<HTMLDivElement | null> }) {
+  return (
+    <div className="mb-6" ref={refProp}>
       <h3 className={`text-[13px] uppercase tracking-wide mb-2.5 ${danger ? 'text-[var(--danger)]' : 'text-[var(--muted)]'}`}>{title}</h3>
       {children}
     </div>
