@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { IconSettings, IconPencil } from '@tabler/icons-react';
+import { IconSettings, IconPencil, IconMenu2, IconChevronLeft } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
 import { DEFAULT_THEME } from '@/lib/themes';
@@ -69,6 +69,7 @@ export default function App() {
   const [filter, setFilter] = useState<LedgerFilter>(emptyFilter());
   const [search, setSearch] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -442,7 +443,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col p-5">
+    <div className="h-screen flex flex-col p-3 md:p-5">
       <div className="flex justify-between items-center mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
@@ -472,8 +473,8 @@ export default function App() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={signOut} className="text-sc-15 text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setLedgerOpen(true)} aria-label="Open ledger" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors md:hidden"><IconMenu2 size={22} /></button>
           <button onClick={() => setSettingsOpen(true)} aria-label="Settings" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors"><IconSettings size={18} /></button>
         </div>
       </div>
@@ -484,15 +485,15 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex gap-4 flex-1 min-h-0">
-        <div className="min-h-0" style={{ width: '70%' }}>
+      <div className="flex gap-4 flex-1 min-h-0 relative">
+        <div className="min-h-0 w-full md:w-[70%]">
           <Dashboard
             allTransactions={transactions}
             monthlyPot={monthlyPot}
             reflections={reflections}
             onAddReflection={addReflection}
             flaggedSubs={flaggedSubs}
-            onSelectCategory={(c) => setFilter({ ...emptyFilter(), categories: new Set([c]) })}
+            onSelectCategory={(c) => { setFilter({ ...emptyFilter(), categories: new Set([c]) }); setLedgerOpen(true); }}
             goals={goals}
             goalContributions={goalContributions}
             onAddGoal={addGoal}
@@ -505,14 +506,23 @@ export default function App() {
             onAddFlaggedSubscription={addFlaggedSubscription}
           />
         </div>
-        <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0" style={{ width: '30%' }}>
-          <Ledger
-            month={month}
-            monthLabel={month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-            onPrevMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-            onNextMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-            onJumpMonths={(delta) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))}
-            onToday={() => { const d = new Date(); d.setDate(1); setMonth(d); }}
+
+        {ledgerOpen && <div onClick={() => setLedgerOpen(false)} className="fixed inset-0 bg-black/50 z-20 md:hidden" />}
+
+        <div
+          className={`bg-[var(--surface)] border border-[var(--border)]/60 md:rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0 flex flex-col fixed md:static inset-y-0 right-0 w-[90%] max-w-sm md:w-[30%] md:max-w-none z-30 md:z-auto transition-transform duration-300 ${ledgerOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}
+        >
+          <button onClick={() => setLedgerOpen(false)} aria-label="Close ledger" className="md:hidden mb-2 shrink-0 flex items-center gap-1 text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+            <IconChevronLeft size={18} /><span className="text-sc-14">Back</span>
+          </button>
+          <div className="flex-1 min-h-0">
+            <Ledger
+              month={month}
+              monthLabel={month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+              onPrevMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              onNextMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+              onJumpMonths={(delta) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))}
+              onToday={() => { const d = new Date(); d.setDate(1); setMonth(d); }}
             transactions={monthTransactions}
             allTransactions={transactions}
             monthlyPot={monthlyPot}
@@ -525,6 +535,7 @@ export default function App() {
             onSelect={setEditingTxn}
             onDelete={deleteTransaction}
           />
+          </div>
         </div>
       </div>
 
@@ -533,6 +544,7 @@ export default function App() {
         recurringTemplates={recurringTemplates}
         hasApiKey={!!apiKey}
         gmailConnected={gmailConnected}
+        ledgerOpen={ledgerOpen}
         onAdd={addTransaction}
         onBulkAdd={bulkAddTransactions}
         onLogRecurring={logRecurring}
@@ -578,6 +590,7 @@ export default function App() {
         onSendFeedback={sendFeedback}
         gmailConnected={gmailConnected}
         onAddFlaggedSubscription={addFlaggedSubscription}
+        onSignOut={signOut}
       />
     </div>
   );

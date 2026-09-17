@@ -245,21 +245,21 @@ export default function Ledger({
       {highlights && (
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--accent)' }}>
-            <IconReceipt2 size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.28)' }} />
-            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.8)' }}>Biggest expense</p>
-            <p className="text-sc-15 font-bold relative text-white">{fmt(highlights.biggest.amount)}</p>
+            <IconReceipt2 size={22} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.28)' }} />
+            <p className="text-sc-9 relative pr-4" style={{ color: 'rgba(255,255,255,.8)' }}>Biggest expense</p>
+            <p className="text-sc-15 font-bold relative text-white truncate pr-1">{fmt(highlights.biggest.amount)}</p>
             <p className="text-sc-8 relative truncate" style={{ color: 'rgba(255,255,255,.75)' }}>{highlights.biggest.description}</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: CAT_COLORS[highlights.topCategory.name] || 'var(--positive)' }}>
-            <IconCategory size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
-            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.85)' }}>Most frequent</p>
-            <p className="text-sc-15 font-bold relative text-white truncate">{highlights.topCategory.name}</p>
+            <IconCategory size={22} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
+            <p className="text-sc-9 relative pr-4" style={{ color: 'rgba(255,255,255,.85)' }}>Most frequent</p>
+            <p className="text-sc-15 font-bold relative text-white truncate pr-1">{highlights.topCategory.name}</p>
             <p className="text-sc-8 relative" style={{ color: 'rgba(255,255,255,.8)' }}>{highlights.topCategory.count} transactions</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--border)' }}>
-            <IconFlame size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
-            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.8)' }}>Busiest day</p>
-            <p className="text-sc-15 font-bold relative text-white">{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+            <IconFlame size={22} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
+            <p className="text-sc-9 relative pr-4" style={{ color: 'rgba(255,255,255,.8)' }}>Busiest day</p>
+            <p className="text-sc-15 font-bold relative text-white truncate pr-1">{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
             <p className="text-sc-8 relative" style={{ color: 'rgba(255,255,255,.75)' }}>{highlights.busiestDay.count} transactions</p>
           </div>
         </div>
@@ -345,7 +345,7 @@ export default function Ledger({
                 </div>
               )}
               <div
-                className="sticky top-0 flex justify-between text-sc-14 uppercase tracking-wide font-semibold py-2"
+                className="sticky top-0 flex justify-between text-sc-14 uppercase tracking-wide font-semibold py-2 mb-1.5 z-10"
                 style={isToday
                   ? { color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent), var(--surface) 85%)', paddingLeft: 8, paddingRight: 8, marginLeft: -8, marginRight: -8, borderRadius: 6 }
                   : { color: 'var(--muted)', background: 'var(--surface)' }}

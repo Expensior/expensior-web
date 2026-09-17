@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
+import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown, IconLogout } from '@tabler/icons-react';
 import { THEMES } from '@/lib/themes';
 import type { RecurringTemplate, Category } from '@/lib/types';
 
@@ -35,6 +35,7 @@ export default function SettingsDrawer({
   onSendFeedback,
   gmailConnected,
   onAddFlaggedSubscription,
+  onSignOut,
 }: {
   open: boolean;
   onClose: () => void;
@@ -65,6 +66,7 @@ export default function SettingsDrawer({
   onSendFeedback: (message: string) => void;
   gmailConnected: boolean;
   onAddFlaggedSubscription: (merchant: string, amount: number) => void;
+  onSignOut: () => void;
 }) {
   const [newCat, setNewCat] = useState('');
   const [pot, setPot] = useState(monthlyPot?.toString() || '');
@@ -102,6 +104,13 @@ export default function SettingsDrawer({
         </div>
 
         <div className="p-4">
+          <button
+            onClick={onSignOut}
+            className="w-full flex items-center justify-center gap-2 bg-[var(--bg)]/40 border border-[var(--border)]/60 text-[var(--text)] rounded-lg py-2.5 text-sc-14 font-medium mb-6"
+          >
+            <IconLogout size={16} /> Sign out
+          </button>
+
           <Section title="Tiers">
             <TierRow
               name="Getting a feel"

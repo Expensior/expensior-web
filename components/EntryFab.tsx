@@ -23,6 +23,7 @@ export default function EntryFab({
   recurringTemplates,
   hasApiKey,
   gmailConnected,
+  ledgerOpen,
   onAdd,
   onBulkAdd,
   onLogRecurring,
@@ -31,6 +32,7 @@ export default function EntryFab({
   recurringTemplates: RecurringTemplate[];
   hasApiKey: boolean;
   gmailConnected: boolean;
+  ledgerOpen: boolean;
   onAdd: (t: NewTransaction) => Promise<void>;
   onBulkAdd: (items: NewTransaction[]) => Promise<void>;
   onLogRecurring: (template: RecurringTemplate) => Promise<void>;
@@ -51,7 +53,7 @@ export default function EntryFab({
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-30" style={{ maxWidth: 'calc(100vw - 40px)' }}>
+    <div className={`fixed bottom-20 right-5 md:bottom-5 z-30 ${ledgerOpen ? 'hidden md:block' : ''}`} style={{ maxWidth: 'calc(100vw - 40px)' }}>
       {toast && (
         <div className="absolute bottom-[80px] right-0 bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-sc-20 rounded-lg px-4 py-2.5 shadow-lg whitespace-nowrap">
           {toast}

@@ -70,8 +70,8 @@ export default function Dashboard({
   const streak = useMemo(() => computeLoggingStreak(allTransactions.map((t) => t.date)), [allTransactions]);
 
   return (
-    <div className="h-full flex bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl overflow-hidden shadow-lg shadow-black/20">
-      <div className="flex flex-col py-3 shrink-0 bg-[var(--bg)]/30 border-r border-[var(--border)]/40" style={{ width: 56 }}>
+    <div className="h-full flex flex-col md:flex-row bg-[var(--surface)] md:border md:border-[var(--border)]/60 md:rounded-2xl overflow-hidden md:shadow-lg md:shadow-black/20">
+      <div className="hidden md:flex flex-col py-3 shrink-0 bg-[var(--bg)]/30 border-r border-[var(--border)]/40" style={{ width: 56 }}>
         {RAIL.map((s) => {
           const Icon = s.icon;
           const isActive = activeMain === s.key;
@@ -89,13 +89,13 @@ export default function Dashboard({
         })}
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {section.tabs && (
-          <div className="px-5 pt-4">
+          <div className="px-4 md:px-5 pt-3 md:pt-4 shrink-0">
             <SegmentedTabs tabs={section.tabs} active={currentSub} onChange={(k) => setActiveSub((prev) => ({ ...prev, [section.key]: k }))} />
           </div>
         )}
-        <div className="flex-1 p-6 overflow-auto min-w-0">
+        <div className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-auto min-w-0">
           {currentSub === 'overview' && <Overview allTransactions={allTransactions} onSelectCategory={onSelectCategory} streak={streak} lastVisitedAt={lastVisitedAt} />}
           {currentSub === 'patterns' && <Patterns allTransactions={allTransactions} monthlyPot={monthlyPot} />}
           {currentSub === 'trends' && <Trends allTransactions={allTransactions} />}
@@ -106,13 +106,31 @@ export default function Dashboard({
           {currentSub === 'goals' && <Goals goals={goals} contributions={goalContributions} onAddGoal={onAddGoal} onLogContribution={onLogContribution} />}
         </div>
       </div>
+
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex bg-[var(--bg)] border-t border-[var(--border)]/50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {RAIL.map((s) => {
+          const Icon = s.icon;
+          const isActive = activeMain === s.key;
+          return (
+            <button
+              key={s.key}
+              onClick={() => setActiveMain(s.key)}
+              className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5"
+            >
+              {isActive && <span className="absolute top-0 left-3 right-3 h-0.5 bg-[var(--accent)] rounded-full" />}
+              <Icon size={20} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
+              <span className={`text-sc-8 ${isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}`}>{s.key === 'selfknow' ? 'Insights' : s.key === 'patterns' ? 'Trends' : s.key === 'reflect' ? 'Reflect' : s.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function DeltaStat({ label, value, icon: Icon, deltaPct, color }: { label: string; value: string; icon: any; deltaPct?: number | null; color: string }) {
   return (
-    <div className="bg-[var(--bg)]/40 rounded-xl p-3.5">
+    <div className="bg-[var(--bg)]/40 rounded-xl p-2.5 md:p-3.5">
       <Icon size={20} style={{ color }} />
       <p className="text-sc-22 font-bold mt-1.5 mb-0.5" style={{ color: 'var(--text)' }}>{value}</p>
       {deltaPct === undefined ? null : deltaPct === null ? (
@@ -193,13 +211,13 @@ function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: 
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-5 shrink-0">
+      <div className="grid grid-cols-3 gap-2 md:gap-5 shrink-0">
         <DeltaStat label="Spent this week" value={fmt(spent)} icon={IconGauge} deltaPct={spentDelta} color="var(--accent)" />
         <DeltaStat label="Indulgence" value={`${Math.round(indulgencePct)}%`} icon={IconFlame} deltaPct={indulgenceDelta} color="var(--positive)" />
         <DeltaStat label="Day logging streak" value={String(streak)} icon={IconFlame} color="var(--accent)" />
       </div>
 
-      <div className="bg-[var(--bg)]/40 rounded-2xl p-6 flex-1 flex flex-col justify-center min-h-0">
+      <div className="bg-[var(--bg)]/40 rounded-2xl p-6 shrink-0">
         <p className="text-sc-16 text-[var(--muted)] uppercase tracking-wide mb-4">Category split — click to filter the ledger</p>
         <div className="flex h-6 rounded-full overflow-hidden mb-4">
           {byCat.length === 0 && <div className="w-full bg-[var(--surface)]" />}
@@ -288,7 +306,7 @@ function Patterns({ allTransactions, monthlyPot }: { allTransactions: Transactio
         <p className="text-sc-16 text-[var(--muted)] mb-3">Set a monthly pot in settings to see burn-down and projections.</p>
       )}
 
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <div className="bg-[var(--bg)]/40 rounded-xl p-4">
           <p className="text-sc-16 font-semibold text-[var(--text)] mb-2">Spend by emotion, this week</p>
           {byTag.length === 0 && <p className="text-sc-16 text-[var(--muted)]">No tagged transactions yet.</p>}
@@ -364,7 +382,7 @@ function Trends({ allTransactions }: { allTransactions: Transaction[] }) {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {drift.map((r) => (
           <div key={r.cat} className="bg-[var(--bg)]/40 rounded-xl p-3.5">
             <p className="text-sc-14 text-[var(--muted)] mb-1">{r.cat}, 4-wk avg</p>

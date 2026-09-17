@@ -145,7 +145,53 @@ related is broken.**
   flagging, toggle switch with explicit checkmark (not just color) for on/off
   clarity
 
-### Built, structurally sound (compiles + logic-tested), NOT yet visually confirmed
+### Built, structurally sound (compiles), NOT yet visually confirmed
+- **Mobile portrait layout** (this session, large piece of work): Ledger
+  moved into a slide-in drawer from the right (hamburger icon, top-left of
+  header on mobile), Settings kept as its existing right-drawer pattern but
+  now definitively on top of the Ledger drawer via z-index (Ledger backdrop
+  z-20/panel z-30, Settings backdrop z-40/panel z-50 — unchanged, this
+  ordering was already correct for the new requirement). Dashboard's left
+  icon rail is `hidden md:flex`; a new bottom tab bar (`md:hidden`) mirrors
+  the same 5 sections with shortened labels ("Insights" for
+  Self-knowledge+Subscriptions, etc. — the full labels are too long for a
+  narrow tab). FAB gets more bottom clearance on mobile (`bottom-20` vs
+  `bottom-5`) to clear the new tab bar, and hides entirely while the Ledger
+  drawer is open (floating over an open ledger didn't make sense). Sign Out
+  moved from the header into Settings as the first item, for both mobile AND
+  desktop — this was a mobile-specific instruction but applying it everywhere
+  avoids having two different Sign Out locations depending on screen size.
+  Multi-column layouts in Patterns/Trends stack to one column below `md:`.
+  Dashboard's own card styling (border/rounded corners/shadow) is stripped on
+  mobile for a full-bleed feel, restored at `md:`.
+- **None of this has been seen on an actual phone or resized browser window.**
+  Everything here was verified by reading the Tailwind breakpoint logic
+  carefully and confirming a clean build — not by visual inspection at a
+  narrow viewport. This is the single biggest "needs verification" item in
+  this whole document. Test at minimum: a real phone in portrait, and a
+  desktop browser resized narrow (Chrome DevTools device toolbar). Specific
+  things to check first: does the Ledger drawer actually cover the full
+  screen height correctly, does the FAB fully clear the bottom tab bar with
+  no visual overlap, do the bottom tab bar's shortened labels fit without
+  wrapping/truncating oddly, and does the SegmentedTabs component (used
+  inside Patterns/Self-knowledge/Reflect/Goals) fit two tabs side by side on
+  the narrowest phones (~320px wide) given its `minWidth: 108` per tab.
+- **One real bug was caught and fixed while re-reading this code before
+  shipping**: the mobile Ledger drawer wrapper wasn't `flex flex-col`. Adding
+  the mobile-only "Back" button as a sibling before `<Ledger>` (which
+  internally demands `h-full`) meant two children competing for height in a
+  plain block container — the Back button took its natural height, but
+  Ledger's `h-full` still tried to claim 100% of the wrapper regardless,
+  which would have pushed the bottom of the ledger content below the visible
+  area. This worked fine before only because `<Ledger>` was the sole child.
+  Fixed by making the wrapper `flex flex-col`, the Back button `shrink-0`,
+  and wrapping `<Ledger>` in its own `flex-1 min-h-0` div. **Still worth
+  confirming live** that the ledger list actually scrolls correctly within
+  its bounds on a real mobile viewport, since this class of bug is exactly
+  the kind that looks fine reading the code but needs an actual render to be
+  sure.
+- Landscape mobile orientation was explicitly NOT addressed — only portrait
+  was requested this round.
 - **AI-assisted categorization + collective knowledge** (this session): local
   keyword hints → shared `global_merchant_patterns` lookup → Claude API call
   (only if user has a key set) → result written back to the shared table.
@@ -184,29 +230,13 @@ These were reported via text description only (user has hit the image limit
 for this chat). Fixes below were made based on reading the code, NOT visual
 confirmation. **Verify all of these live before considering them closed.**
 
-1. **"Today text is still overlapping"** — this was reported as fixed once
-   already this session (the sticky header background was 92% transparent,
-   causing ghosting during scroll; changed to a `color-mix` against
-   `var(--surface)` for opacity). User says it's STILL happening after that
-   fix. No further code change was made this round because the existing fix
-   looks correct on inspection — the reported recurrence might be from before
-   that fix was deployed, or there's a second distinct cause not yet
-   identified. **This needs a fresh screenshot in the new chat to diagnose
-   properly rather than another blind guess.**
+1. **"Text overlap" has now been reported three times, describing THREE DIFFERENT bugs** — worth being precise about this for whoever continues this project, since reusing the same vague phrase made it easy to conflate them:
+   - **Bug A (Ledger sticky day-header, ghosting)**: the "Today" header had a 92%-transparent background, so scrolled content showed through underneath it. Fixed by making the background opaque.
+   - **Bug B (Ledger highlight boxes)**: the "17 Sept" value inside the "Busiest day" box ran into the decorative icon in the corner, since the icon is absolutely positioned and doesn't reserve space in normal text flow, and the value lacked `truncate` unlike its sibling box. Fixed by adding `truncate` to all three boxes and shrinking the icons.
+   - **Bug C (Ledger sticky day-header, spacing — found via a clear screenshot this round)**: "BAKERS' HARVEST -₹240" directly overlapping "THU, 17 SEPT / ₹2,072" — these belong to the *same* day group. This is the classic limitation of per-group `position: sticky` headers: once stuck at the top of the scroll container, a header doesn't automatically reserve space below itself for its own group's first row. With no margin, zero clearance. Fixed by adding `mb-1.5` and an explicit `z-10`.
+   - **All three fixes are distinct and all still in the code** — none superseded another. If "text overlap" gets reported a fourth time, get a screenshot before assuming it's one of these three recurring; it could easily be a fourth distinct location.
 
-2. **"Entire Overview section is one big blank box" (marked URGENT)** — most
-   likely culprit: the text-scale CSS rewrite (see Design System above)
-   landed in the same batch of changes right before this was reported. The
-   JSX itself was read line-by-line and is syntactically sound. One
-   concrete fix was applied: the CSS originally nested `max()` inside a
-   redundant `calc()` wrapper (`calc(max(8px, 18px + var(--text-offset)))`)
-   — technically valid CSS but unnecessary, so it was simplified to bare
-   `max(8px, 18px + var(--text-offset))` defensively. **This is a real
-   suspicion, not a confirmed diagnosis** — if Overview is still blank after
-   this, the next thing to check is whether `--text-offset` is actually
-   resolving to a valid value at all (inspect computed styles on any
-   `.text-sc-*` element), and whether `byCat`/`sinceVisit` are computing
-   correctly for real data (add a temporary `console.log`).
+2. **"Overview section is one big blank box" — ROOT CAUSE CONFIRMED, not just a guess.** The category-split card had `flex-1 flex flex-col justify-center` — meaning it stretched to fill ALL remaining vertical space in the tab, then centered its actual content (a short bar + one sentence + legend) within that oversized box. This produces exactly the reported symptom: a small amount of real content floating in a sea of empty background, reading as "one graphic, otherwise devoid of anything." The "September so far" trend strip visible at the very bottom of the screenshot was real, correctly-rendered content — just visually stranded below all that dead space. Fixed by removing `flex-1`/`justify-center`, letting the card size to its natural content height. This means Overview's total content may now be shorter than the full tab height on some screens, leaving trailing whitespace at the *bottom* of the tab instead — a far more normal look than a mysteriously empty card in the middle. **This fix is now confirmed via direct screenshot analysis, not a blind guess** — the earlier version of this handoff had this as the top suspect without proof; that suspicion held up.
 
 3. **"Recurring templates needs an edit button"** — built this session:
    inline edit (name, amount, cadence) via a pencil icon, matching the
