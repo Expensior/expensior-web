@@ -345,9 +345,9 @@ export default function Ledger({
                 </div>
               )}
               <div
-                className="sticky top-0 flex justify-between text-sc-14 uppercase tracking-wide font-semibold py-2 mb-1.5 z-10"
+                className="sticky top-0 flex justify-between text-sc-14 uppercase tracking-wide font-semibold py-2 mb-1.5 z-10 -mx-[18px] px-5"
                 style={isToday
-                  ? { color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent), var(--surface) 85%)', paddingLeft: 8, paddingRight: 8, marginLeft: -8, marginRight: -8, borderRadius: 6 }
+                  ? { color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent), var(--surface) 85%)', borderRadius: 6 }
                   : { color: 'var(--muted)', background: 'var(--surface)' }}
               >
                 <span>{isToday ? 'Today' : new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
@@ -359,7 +359,7 @@ export default function Ledger({
                   <div
                     key={t.id}
                     onClick={() => onSelect(t)}
-                    className={`group relative flex items-center gap-2 py-2.5 px-2 -mx-1.5 my-1 rounded-lg cursor-pointer overflow-hidden ${selectedId === t.id ? 'ring-1' : ''}`}
+                    className={`group relative flex items-center gap-2 py-2.5 -mx-[18px] px-5 my-1 rounded-lg cursor-pointer overflow-hidden ${selectedId === t.id ? 'ring-1' : ''}`}
                     style={selectedId === t.id ? { ['--tw-ring-color' as any]: 'var(--accent)' } : undefined}
                   >
                     <div

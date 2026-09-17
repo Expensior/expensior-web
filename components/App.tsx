@@ -510,7 +510,7 @@ export default function App() {
         {ledgerOpen && <div onClick={() => setLedgerOpen(false)} className="fixed inset-0 bg-black/50 z-20 md:hidden" />}
 
         <div
-          className={`bg-[var(--surface)] border border-[var(--border)]/60 md:rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0 flex flex-col fixed md:static inset-y-0 right-0 w-[90%] max-w-sm md:w-[30%] md:max-w-none z-30 md:z-auto transition-transform duration-300 ${ledgerOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}
+          className={`bg-[var(--surface)] border border-[var(--border)]/60 md:rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0 flex flex-col fixed md:static inset-y-0 right-0 w-[90%] max-w-sm md:w-[30%] md:max-w-none z-30 md:z-auto transition-transform duration-300 overscroll-contain ${ledgerOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}
         >
           <button onClick={() => setLedgerOpen(false)} aria-label="Close ledger" className="md:hidden mb-2 shrink-0 flex items-center gap-1 text-[var(--muted)] hover:text-[var(--text)] transition-colors">
             <IconChevronLeft size={18} /><span className="text-sc-14">Back</span>
