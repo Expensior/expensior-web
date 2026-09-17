@@ -24,20 +24,32 @@
 [data-text-size="compact"] { --text-offset: -1px; }
 [data-text-size="large"] { --text-offset: 3px; }
 
-.text-sc-8 { font-size: calc(max(8px, 8px + var(--text-offset))); }
-.text-sc-9 { font-size: calc(max(8px, 9px + var(--text-offset))); }
-.text-sc-10 { font-size: calc(max(8px, 10px + var(--text-offset))); }
-.text-sc-11 { font-size: calc(max(8px, 11px + var(--text-offset))); }
-.text-sc-12 { font-size: calc(max(8px, 12px + var(--text-offset))); }
-.text-sc-13 { font-size: calc(max(8px, 13px + var(--text-offset))); }
-.text-sc-14 { font-size: calc(max(8px, 14px + var(--text-offset))); }
-.text-sc-15 { font-size: calc(max(8px, 15px + var(--text-offset))); }
-.text-sc-16 { font-size: calc(max(8px, 16px + var(--text-offset))); }
-.text-sc-17 { font-size: calc(max(8px, 17px + var(--text-offset))); }
-.text-sc-18 { font-size: calc(max(8px, 18px + var(--text-offset))); }
-.text-sc-20 { font-size: calc(max(8px, 20px + var(--text-offset))); }
-.text-sc-22 { font-size: calc(max(8px, 22px + var(--text-offset))); }
-.text-sc-32 { font-size: calc(max(8px, 32px + var(--text-offset))); }
+.text-sc-8 { font-size: max(8px, 8px + var(--text-offset)); }
+.text-sc-9 { font-size: max(8px, 9px + var(--text-offset)); }
+.text-sc-10 { font-size: max(8px, 10px + var(--text-offset)); }
+.text-sc-11 { font-size: max(8px, 11px + var(--text-offset)); }
+.text-sc-12 { font-size: max(8px, 12px + var(--text-offset)); }
+.text-sc-13 { font-size: max(8px, 13px + var(--text-offset)); }
+.text-sc-14 { font-size: max(8px, 14px + var(--text-offset)); }
+.text-sc-15 { font-size: max(8px, 15px + var(--text-offset)); }
+.text-sc-16 { font-size: max(8px, 16px + var(--text-offset)); }
+.text-sc-17 { font-size: max(8px, 17px + var(--text-offset)); }
+.text-sc-18 { font-size: max(8px, 18px + var(--text-offset)); }
+.text-sc-20 { font-size: max(8px, 20px + var(--text-offset)); }
+.text-sc-22 { font-size: max(8px, 22px + var(--text-offset)); }
+.text-sc-32 { font-size: max(8px, 32px + var(--text-offset)); }
+
+/* Native number-input spinner arrows don't respect any of our theme colors
+   and look visually broken against a themed background — hide them app-wide
+   rather than patch them per-input. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
 
 /* Winter solstice — light, cool. Border derived from accent; muted text
    derived as the midpoint between text and background (none of the five

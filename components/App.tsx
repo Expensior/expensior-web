@@ -268,6 +268,11 @@ export default function App() {
     setRecurringTemplates((prev) => prev.filter((t) => t.id !== id));
   }
 
+  async function editRecurringTemplate(id: string, updates: { name: string; amount: number; cadence: 'monthly' | 'weekly' }) {
+    await supabase.from('recurring_templates').update(updates).eq('id', id);
+    setRecurringTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  }
+
   async function addGoal(g: { name: string; target_amount: number; target_date: string | null }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -565,6 +570,7 @@ export default function App() {
         recurringTemplates={recurringTemplates}
         onAddRecurringTemplate={addRecurringTemplate}
         onDeleteRecurringTemplate={deleteRecurringTemplate}
+        onEditRecurringTemplate={editRecurringTemplate}
         fridayDigestEnabled={fridayDigestEnabled}
         onSaveFridayDigestEnabled={saveFridayDigestEnabled}
         sundayWrapEnabled={sundayWrapEnabled}

@@ -27,6 +27,7 @@ export default function SettingsDrawer({
   recurringTemplates,
   onAddRecurringTemplate,
   onDeleteRecurringTemplate,
+  onEditRecurringTemplate,
   fridayDigestEnabled,
   onSaveFridayDigestEnabled,
   sundayWrapEnabled,
@@ -56,6 +57,7 @@ export default function SettingsDrawer({
   recurringTemplates: RecurringTemplate[];
   onAddRecurringTemplate: (t: Omit<RecurringTemplate, 'id' | 'sort_order'>) => void;
   onDeleteRecurringTemplate: (id: string) => void;
+  onEditRecurringTemplate: (id: string, updates: { name: string; amount: number; cadence: 'monthly' | 'weekly' }) => void;
   fridayDigestEnabled: boolean;
   onSaveFridayDigestEnabled: (enabled: boolean) => void;
   sundayWrapEnabled: boolean;
@@ -79,6 +81,10 @@ export default function SettingsDrawer({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [subMerchant, setSubMerchant] = useState('');
   const [subAmount, setSubAmount] = useState('');
+  const [editingRecId, setEditingRecId] = useState<string | null>(null);
+  const [editRecName, setEditRecName] = useState('');
+  const [editRecAmount, setEditRecAmount] = useState('');
+  const [editRecCadence, setEditRecCadence] = useState<'monthly' | 'weekly'>('monthly');
   const apiKeySectionRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES.find((t) => t.id === theme);
@@ -283,12 +289,48 @@ export default function SettingsDrawer({
             <div className="flex flex-col gap-1.5 mb-3">
               {recurringTemplates.length === 0 && <p className="text-sc-13 text-[var(--muted)]">None yet — add one below.</p>}
               {recurringTemplates.map((t) => (
-                <div key={t.id} className="flex justify-between items-center bg-[var(--surface)] border border-[var(--border)]/60 rounded-lg px-2.5 py-2">
-                  <div>
-                    <p className="text-sc-14 text-[var(--text)]">{t.name}</p>
-                    <p className="text-sc-12 text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
-                  </div>
-                  <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-sc-14">×</button>
+                <div key={t.id} className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-lg px-2.5 py-2">
+                  {editingRecId === t.id ? (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex gap-2">
+                        <input autoFocus value={editRecName} onChange={(e) => setEditRecName(e.target.value)} className="flex-1 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sc-14 text-[var(--text)]" />
+                        <input type="number" value={editRecAmount} onChange={(e) => setEditRecAmount(e.target.value)} className="w-20 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sc-14 text-[var(--text)]" />
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <select value={editRecCadence} onChange={(e) => setEditRecCadence(e.target.value as 'monthly' | 'weekly')} className="flex-1 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sc-13 text-[var(--text)]">
+                          <option value="monthly">Monthly</option>
+                          <option value="weekly">Weekly</option>
+                        </select>
+                        <button
+                          onClick={() => {
+                            onEditRecurringTemplate(t.id, { name: editRecName.trim() || t.name, amount: parseFloat(editRecAmount) || t.amount, cadence: editRecCadence });
+                            setEditingRecId(null);
+                          }}
+                          className="text-[var(--accent)] text-sc-13 font-medium shrink-0"
+                        >
+                          Save
+                        </button>
+                        <button onClick={() => setEditingRecId(null)} className="text-[var(--muted)] text-sc-13 shrink-0">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sc-14 text-[var(--text)]">{t.name}</p>
+                        <p className="text-sc-12 text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => { setEditRecName(t.name); setEditRecAmount(String(t.amount)); setEditRecCadence(t.cadence); setEditingRecId(t.id); }}
+                          aria-label="Edit"
+                          className="text-[var(--muted)] hover:text-[var(--accent)]"
+                        >
+                          <IconPencil size={14} />
+                        </button>
+                        <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-sc-14">×</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
