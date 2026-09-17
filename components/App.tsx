@@ -337,28 +337,28 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen p-5">
-      <div className="flex justify-between items-center mb-4">
+    <div className="h-screen flex flex-col p-5">
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-          <h1 className="text-base font-semibold text-[var(--text)] tracking-tight">
+          <h1 className="text-lg font-semibold text-[var(--text)] tracking-tight">
             {displayName ? `Hello, ${displayName}` : 'Expensior!'}
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={signOut} className="text-[11px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
+          <button onClick={signOut} className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
           <button onClick={() => setSettingsOpen(true)} aria-label="Settings" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors"><IconSettings size={18} /></button>
         </div>
       </div>
 
       {gmailNotice && (
-        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-xs rounded-lg px-3 py-2 mb-4">
+        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-xs rounded-lg px-3 py-2 mb-4 shrink-0">
           {gmailNotice}
         </div>
       )}
 
-      <div className="flex gap-4" style={{ height: 'calc(100vh - 76px)' }}>
-        <div style={{ width: '70%' }}>
+      <div className="flex gap-4 flex-1 min-h-0">
+        <div className="min-h-0" style={{ width: '70%' }}>
           <Dashboard
             allTransactions={transactions}
             monthlyPot={monthlyPot}
@@ -376,7 +376,7 @@ export default function App() {
             lastVisitedAt={lastVisitedAt}
           />
         </div>
-        <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20" style={{ width: '30%' }}>
+        <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0" style={{ width: '30%' }}>
           <Ledger
             monthLabel={month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
             onPrevMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}

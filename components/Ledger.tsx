@@ -83,34 +83,34 @@ export default function Ledger({
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-1">
-        <button onClick={onPrevMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-sm px-1.5 transition-colors">‹</button>
-        <button onClick={onToday} className="text-sm font-semibold text-[var(--text)] tracking-tight">{monthLabel}</button>
-        <button onClick={onNextMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-sm px-1.5 transition-colors">›</button>
+        <button onClick={onPrevMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-base px-2 transition-colors">‹</button>
+        <button onClick={onToday} className="text-base font-semibold text-[var(--text)] tracking-tight">{monthLabel}</button>
+        <button onClick={onNextMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-base px-2 transition-colors">›</button>
       </div>
-      <p className="text-lg font-bold text-[var(--positive)] tracking-tight mb-3">{fmt(monthTotal)}<span className="text-[11px] font-normal text-[var(--muted)] ml-1.5">spent</span></p>
+      <p className="text-xl font-bold text-[var(--positive)] tracking-tight mb-3">{fmt(monthTotal)}<span className="text-[14px] font-normal text-[var(--muted)] ml-1.5">spent</span></p>
 
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search ledger"
-        className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] placeholder:text-[var(--muted)] mb-2 focus:outline-none focus:border-[var(--accent)]/60 transition-colors"
+        className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--muted)] mb-2 focus:outline-none focus:border-[var(--accent)]/60 transition-colors"
       />
 
       <div className="flex flex-wrap gap-1.5 mb-1">
         <span
           onClick={() => setFilter({ ...filter, indulgence: !filter.indulgence })}
-          className={`text-[10px] px-2 py-1 rounded-full border cursor-pointer ${filter.indulgence ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
+          className={`text-[12px] px-2.5 py-1.5 rounded-full border cursor-pointer ${filter.indulgence ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
         >indulgence</span>
         <span
           onClick={() => setFilter({ ...filter, essential: !filter.essential })}
-          className={`text-[10px] px-2 py-1 rounded-full border cursor-pointer ${filter.essential ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
+          className={`text-[12px] px-2.5 py-1.5 rounded-full border cursor-pointer ${filter.essential ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
         >essential</span>
         <span
           onClick={() => setFilter({ ...filter, regret: !filter.regret })}
-          className={`text-[10px] px-2 py-1 rounded-full border cursor-pointer ${filter.regret ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
+          className={`text-[12px] px-2.5 py-1.5 rounded-full border cursor-pointer ${filter.regret ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
         >regret</span>
         {anyChipActive && (
-          <span onClick={() => setFilter(emptyFilter())} className="text-[10px] px-2 py-1 text-[var(--muted)] underline cursor-pointer">
+          <span onClick={() => setFilter(emptyFilter())} className="text-[12px] px-2.5 py-1.5 text-[var(--muted)] underline cursor-pointer">
             clear
           </span>
         )}
@@ -120,22 +120,22 @@ export default function Ledger({
           <span
             key={c}
             onClick={() => toggleCategory(c)}
-            className={`text-[10px] px-2 py-1 rounded-full border cursor-pointer ${filter.categories.has(c) ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
+            className={`text-[12px] px-2.5 py-1.5 rounded-full border cursor-pointer ${filter.categories.has(c) ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`}
           >{c}</span>
         ))}
       </div>
 
-      <div className="flex-1 overflow-auto -mx-1 px-1">
+      <div className="flex-1 overflow-auto -mx-1 px-1.5">
         {grouped.length === 0 && (
           <div className="text-center mt-10">
-            <p className="text-xs text-[var(--muted)]">No transactions match</p>
+            <p className="text-sm text-[var(--muted)]">No transactions match</p>
           </div>
         )}
         {grouped.map(([date, txns]) => {
           const dayTotal = txns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
           return (
             <div key={date}>
-              <div className="sticky top-0 bg-[var(--surface)] flex justify-between text-[10px] text-[var(--muted)] uppercase tracking-wide font-semibold py-1.5">
+              <div className="sticky top-0 bg-[var(--surface)] flex justify-between text-[12px] text-[var(--muted)] uppercase tracking-wide font-semibold py-2">
                 <span>{new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 <span>{fmt(dayTotal)}</span>
               </div>
@@ -143,19 +143,19 @@ export default function Ledger({
                 <div
                   key={t.id}
                   onClick={() => onSelect(t)}
-                  className={`group flex items-center gap-2 py-2 px-1.5 -mx-1.5 rounded-lg border-b border-[var(--border)]/30 cursor-pointer hover:bg-[var(--bg)]/40 transition-colors ${selectedId === t.id ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30' : ''}`}
+                  className={`group flex items-center gap-2 py-2.5 px-2 -mx-1.5 rounded-lg border-b border-[var(--border)]/30 cursor-pointer hover:bg-[var(--bg)]/40 transition-colors ${selectedId === t.id ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30' : ''}`}
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: CAT_COLORS[t.category] || 'var(--muted)' }} />
-                  <span className="text-xs text-[var(--text)] truncate flex-1">{t.description}</span>
+                  <span className="text-sm text-[var(--text)] truncate flex-1">{t.description}</span>
                   <span
-                    className="text-xs font-medium shrink-0"
+                    className="text-sm font-medium shrink-0"
                     style={{ color: t.type !== 'expense' ? 'var(--positive)' : t.indulgence ? 'var(--accent)' : 'var(--text)' }}
                   >
                     {t.type !== 'expense' ? '+' : '-'}{fmt(t.amount)}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
-                    className="opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--danger)] text-xs shrink-0 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--danger)] text-sm shrink-0 transition-opacity"
                     aria-label="Delete"
                   >✕</button>
                 </div>

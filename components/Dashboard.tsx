@@ -80,7 +80,7 @@ export default function Dashboard({
               className="relative flex items-center justify-center py-2.5 hover:bg-[var(--bg)]/40 transition-colors"
             >
               {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-[var(--accent)] rounded-full" />}
-              <Icon size={19} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
+              <Icon size={22} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
             </button>
           );
         })}
@@ -92,7 +92,7 @@ export default function Dashboard({
             <SegmentedTabs tabs={section.tabs} active={currentSub} onChange={(k) => setActiveSub((prev) => ({ ...prev, [section.key]: k }))} />
           </div>
         )}
-        <div className="flex-1 p-5 overflow-auto min-w-0">
+        <div className="flex-1 p-6 overflow-auto min-w-0">
           {currentSub === 'overview' && <Overview allTransactions={allTransactions} onSelectCategory={onSelectCategory} streak={streak} lastVisitedAt={lastVisitedAt} />}
           {currentSub === 'patterns' && <Patterns allTransactions={allTransactions} monthlyPot={monthlyPot} />}
           {currentSub === 'trends' && <Trends allTransactions={allTransactions} />}
@@ -109,17 +109,17 @@ export default function Dashboard({
 
 function DeltaStat({ label, value, icon: Icon, deltaPct, color }: { label: string; value: string; icon: any; deltaPct: number | null; color: string }) {
   return (
-    <div className="bg-[var(--bg)]/40 rounded-xl p-3">
-      <Icon size={17} style={{ color }} />
-      <p className="text-lg font-bold mt-1.5 mb-0.5" style={{ color: 'var(--text)' }}>{value}</p>
+    <div className="bg-[var(--bg)]/40 rounded-xl p-3.5">
+      <Icon size={20} style={{ color }} />
+      <p className="text-xl font-bold mt-1.5 mb-0.5" style={{ color: 'var(--text)' }}>{value}</p>
       {deltaPct === null ? (
-        <p className="text-[10px] text-[var(--muted)]">no history yet</p>
+        <p className="text-[12px] text-[var(--muted)]">no history yet</p>
       ) : (
-        <p className="text-[10px]" style={{ color: deltaPct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>
+        <p className="text-[12px]" style={{ color: deltaPct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>
           {deltaPct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(deltaPct))}% vs last week
         </p>
       )}
-      <p className="text-[10px] text-[var(--muted)] mt-0.5">{label}</p>
+      <p className="text-[12px] text-[var(--muted)] mt-0.5">{label}</p>
     </div>
   );
 }
@@ -156,38 +156,48 @@ function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: 
   }, [thisWeek]);
 
   return (
-    <div>
+    <div className="h-full flex flex-col gap-5">
       {sinceVisit && (
-        <div className="bg-[var(--bg)]/40 rounded-xl px-3.5 py-2.5 mb-3 flex items-center gap-2">
-          <IconClock size={15} className="text-[var(--accent)] shrink-0" />
-          <p className="text-xs text-[var(--text)]">
+        <div className="bg-[var(--bg)]/40 rounded-xl px-5 py-3.5 flex items-center gap-3 shrink-0">
+          <IconClock size={22} className="text-[var(--accent)] shrink-0" />
+          <p className="text-base text-[var(--text)]">
             Since you were last here ({sinceVisit.days === 0 ? 'today' : `${sinceVisit.days}d ago`}): {sinceVisit.count} new transaction{sinceVisit.count === 1 ? '' : 's'}, {fmt(sinceVisit.total)} spent.
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2.5 mb-3">
-        <DeltaStat label="This week" value={fmt(spent)} icon={IconGauge} deltaPct={spentDelta} color="var(--accent)" />
+      <div className="grid grid-cols-3 gap-5 shrink-0">
+        <DeltaStat label="Spent this week" value={fmt(spent)} icon={IconGauge} deltaPct={spentDelta} color="var(--accent)" />
         <DeltaStat label="Indulgence" value={`${Math.round(indulgencePct)}%`} icon={IconFlame} deltaPct={indulgenceDelta} color="var(--positive)" />
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3">
-          <IconFlame size={17} className="text-[var(--accent)]" />
-          <p className="text-lg font-bold mt-1.5 mb-0.5 text-[var(--text)]">{streak}</p>
-          <p className="text-[10px] text-[var(--muted)]">day logging streak</p>
+        <div className="bg-[var(--bg)]/40 rounded-2xl p-6 text-center">
+          <IconFlame size={28} className="text-[var(--accent)] mx-auto" />
+          <p className="text-4xl font-bold mt-3 mb-1 text-[var(--text)]">{streak}</p>
+          <p className="text-base text-[var(--muted)]">day logging streak</p>
         </div>
       </div>
 
-      <p className="text-[11px] text-[var(--muted)] uppercase tracking-wide mb-1.5">Category split — click to filter the ledger</p>
-      <div className="flex h-3.5 rounded-full overflow-hidden mb-2">
-        {byCat.map(([cat, amt]) => (
-          <button key={cat} onClick={() => onSelectCategory(cat)} style={{ width: `${(amt / (spent || 1)) * 100}%`, background: CAT_COLORS[cat] || 'var(--muted)' }} title={`${cat}: ${fmt(amt)}`} />
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {byCat.map(([cat]) => (
-          <span key={cat} className="text-[10px] text-[var(--muted)] flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full" style={{ background: CAT_COLORS[cat] || 'var(--muted)' }} />{cat}
-          </span>
-        ))}
+      <div className="bg-[var(--bg)]/40 rounded-2xl p-6 flex-1 flex flex-col justify-center min-h-0">
+        <p className="text-sm text-[var(--muted)] uppercase tracking-wide mb-4">Category split — click to filter the ledger</p>
+        <div className="flex h-6 rounded-full overflow-hidden mb-4">
+          {byCat.length === 0 && <div className="w-full bg-[var(--surface)]" />}
+          {byCat.map(([cat, amt]) => (
+            <button key={cat} onClick={() => onSelectCategory(cat)} style={{ width: `${(amt / (spent || 1)) * 100}%`, background: CAT_COLORS[cat] || 'var(--muted)' }} title={`${cat}: ${fmt(amt)}`} />
+          ))}
+        </div>
+        {byCat.length > 0 ? (
+          <p className="text-base text-[var(--text)] mb-4">
+            <strong>{byCat[0][0]}</strong> is {Math.round((byCat[0][1] / (spent || 1)) * 100)}% of your spend this week{byCat.length === 1 ? ' — add a few more days to see a fuller picture.' : '.'}
+          </p>
+        ) : (
+          <p className="text-base text-[var(--muted)] mb-4">Nothing logged this week yet — once you do, this fills in with a breakdown by category.</p>
+        )}
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {byCat.map(([cat]) => (
+            <span key={cat} className="text-sm text-[var(--muted)] flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: CAT_COLORS[cat] || 'var(--muted)' }} />{cat}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -226,46 +236,46 @@ function Patterns({ allTransactions, monthlyPot }: { allTransactions: Transactio
   return (
     <div>
       {monthlyPot ? (
-        <div className="bg-[var(--bg)]/40 rounded-xl p-4 mb-3">
-          <div className="flex items-center gap-2 mb-2.5">
-            <IconGauge size={17} className="text-[var(--accent)]" />
-            <span className="text-sm font-semibold text-[var(--text)]">Monthly pot burn-down</span>
+        <div className="bg-[var(--bg)]/40 rounded-xl p-5 mb-3">
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <IconGauge size={20} className="text-[var(--accent)]" />
+            <span className="text-base font-semibold text-[var(--text)]">Monthly pot burn-down</span>
           </div>
           <div className="h-3 bg-[var(--surface)] rounded-full overflow-hidden mb-2.5">
             <div className="h-full" style={{ width: `${potPct}%`, background: (potPct || 0) > 100 ? 'var(--danger)' : 'var(--accent)' }} />
           </div>
           {projected > (monthlyPot || 0) && topDriver && (
-            <div className="rounded-lg p-2.5" style={{ background: 'color-mix(in srgb, var(--danger), transparent 88%)' }}>
-              <p className="text-xs" style={{ color: 'var(--text)' }}>
+            <div className="rounded-lg p-3" style={{ background: 'color-mix(in srgb, var(--danger), transparent 88%)' }}>
+              <p className="text-sm" style={{ color: 'var(--text)' }}>
                 At this pace you&apos;ll finish {fmt(projected - monthlyPot)} over — <strong>{topDriver[0]}</strong> alone is {fmt(topDriver[1])}, {Math.round((topDriver[1] / monthSpent) * 100)}% of this month&apos;s spend.
               </p>
             </div>
           )}
         </div>
       ) : (
-        <p className="text-xs text-[var(--muted)] mb-3">Set a monthly pot in settings to see burn-down and projections.</p>
+        <p className="text-sm text-[var(--muted)] mb-3">Set a monthly pot in settings to see burn-down and projections.</p>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3.5">
-          <p className="text-xs font-semibold text-[var(--text)] mb-2">Spend by emotion, this week</p>
-          {byTag.length === 0 && <p className="text-[11px] text-[var(--muted)]">No tagged transactions yet.</p>}
-          <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-3.5">
+        <div className="bg-[var(--bg)]/40 rounded-xl p-4">
+          <p className="text-sm font-semibold text-[var(--text)] mb-2">Spend by emotion, this week</p>
+          {byTag.length === 0 && <p className="text-[14px] text-[var(--muted)]">No tagged transactions yet.</p>}
+          <div className="flex flex-col gap-2.5">
             {byTag.map(([tag, amt]) => (
               <div key={tag}>
-                <div className="flex justify-between text-[11px] mb-1"><span className="text-[var(--text)]">{tag}</span><span className="text-[var(--muted)]">{fmt(amt)}</span></div>
+                <div className="flex justify-between text-[14px] mb-1"><span className="text-[var(--text)]">{tag}</span><span className="text-[var(--muted)]">{fmt(amt)}</span></div>
                 <div className="h-1.5 bg-[var(--surface)] rounded-full overflow-hidden"><div className="h-full bg-[var(--accent)]" style={{ width: `${(amt / byTag[0][1]) * 100}%` }} /></div>
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3.5">
-          <p className="text-xs font-semibold text-[var(--text)] mb-2">Weekday vs weekend</p>
-          <div className="flex gap-2 items-end h-12">
+        <div className="bg-[var(--bg)]/40 rounded-xl p-4">
+          <p className="text-sm font-semibold text-[var(--text)] mb-2">Weekday vs weekend</p>
+          <div className="flex gap-2.5 items-end h-12">
             <div className="flex-1 rounded-t" style={{ height: `${(weekdaySpend / maxWk) * 100}%`, background: 'var(--positive)' }} />
             <div className="flex-1 rounded-t" style={{ height: `${(weekendSpend / maxWk) * 100}%`, background: 'var(--accent)' }} />
           </div>
-          <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1"><span>Weekday</span><span>Weekend</span></div>
+          <div className="flex justify-between text-[12px] text-[var(--muted)] mt-1"><span>Weekday</span><span>Weekend</span></div>
         </div>
       </div>
     </div>
@@ -311,28 +321,28 @@ function Trends({ allTransactions }: { allTransactions: Transaction[] }) {
 
   return (
     <div>
-      <div className="bg-[var(--bg)]/40 rounded-xl p-4 mb-3">
-        <p className="text-xs font-semibold text-[var(--text)] mb-3">Day-of-week heatmap, last 8 weeks</p>
-        <div className="flex gap-1.5">
+      <div className="bg-[var(--bg)]/40 rounded-xl p-5 mb-3">
+        <p className="text-sm font-semibold text-[var(--text)] mb-3">Day-of-week heatmap, last 8 weeks</p>
+        <div className="flex gap-2">
           {heatmap.map((d) => (
             <div key={d.label} className="flex-1 text-center">
               <div className="h-9 rounded-lg" style={{ background: `color-mix(in srgb, var(--accent), transparent ${100 - d.intensity * 100}%)` }} />
-              <p className="text-[9px] text-[var(--muted)] mt-1">{d.label}</p>
+              <p className="text-[11px] text-[var(--muted)] mt-1">{d.label}</p>
             </div>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3.5">
         {drift.map((r) => (
-          <div key={r.cat} className="bg-[var(--bg)]/40 rounded-xl p-3">
-            <p className="text-[10px] text-[var(--muted)] mb-1">{r.cat}, 4-wk avg</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-bold text-[var(--text)]">{fmt(r.current)}</span>
-              <span className="text-[10px]" style={{ color: r.pct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>{r.pct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(r.pct))}%</span>
+          <div key={r.cat} className="bg-[var(--bg)]/40 rounded-xl p-3.5">
+            <p className="text-[12px] text-[var(--muted)] mb-1">{r.cat}, 4-wk avg</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-[var(--text)]">{fmt(r.current)}</span>
+              <span className="text-[12px]" style={{ color: r.pct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>{r.pct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(r.pct))}%</span>
             </div>
           </div>
         ))}
-        {drift.length === 0 && <p className="text-xs text-[var(--muted)]">Not enough history yet to show drift.</p>}
+        {drift.length === 0 && <p className="text-sm text-[var(--muted)]">Not enough history yet to show drift.</p>}
       </div>
     </div>
   );
@@ -355,12 +365,12 @@ function SelfKnowledge({ allTransactions, intentions, onSetIntention }: { allTra
   if (!latest) {
     return (
       <div>
-        <p className="text-xs text-[var(--muted)] mb-3">Set a spend intention for this month to start building your self-knowledge score. It&apos;ll show up here once the month closes.</p>
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3.5 max-w-xs">
-          <label className="text-[11px] text-[var(--muted)] block mb-1.5">This month&apos;s spend intention</label>
-          <div className="flex gap-2">
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="₹35,000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-            <button onClick={() => { const n = parseFloat(input); if (n > 0) { onSetIntention(n); setInput(''); } }} className="bg-[var(--accent)] text-[var(--bg)] text-[11px] font-medium px-3 rounded-lg">Set</button>
+        <p className="text-sm text-[var(--muted)] mb-3">Set a spend intention for this month to start building your self-knowledge score. It&apos;ll show up here once the month closes.</p>
+        <div className="bg-[var(--bg)]/40 rounded-xl p-4 max-w-xs">
+          <label className="text-[14px] text-[var(--muted)] block mb-1.5">This month&apos;s spend intention</label>
+          <div className="flex gap-2.5">
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="₹35,000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+            <button onClick={() => { const n = parseFloat(input); if (n > 0) { onSetIntention(n); setInput(''); } }} className="bg-[var(--accent)] text-[var(--bg)] text-[14px] font-medium px-3 rounded-lg">Set</button>
           </div>
         </div>
       </div>
@@ -374,44 +384,44 @@ function SelfKnowledge({ allTransactions, intentions, onSetIntention }: { allTra
       <div className="flex flex-col items-center mb-4">
         <div className="w-28 h-28 rounded-full flex items-center justify-center mb-2" style={{ background: `conic-gradient(var(--accent) 0deg, var(--accent) ${latest.score * 3.6}deg, color-mix(in srgb, var(--bg), transparent 50%) ${latest.score * 3.6}deg)` }}>
           <div className="w-20 h-20 rounded-full flex flex-col items-center justify-center bg-[var(--surface)]">
-            <span className="text-2xl font-bold text-[var(--text)]">{latest.score}</span>
-            <span className="text-[10px] text-[var(--muted)]">{scoreLabel(latest.score)}</span>
+            <span className="text-3xl font-bold text-[var(--text)]">{latest.score}</span>
+            <span className="text-[12px] text-[var(--muted)]">{scoreLabel(latest.score)}</span>
           </div>
         </div>
         {streak >= 2 && (
-          <div className="flex items-center gap-1.5 bg-[var(--accent)]/10 rounded-full px-3 py-1">
-            <IconFlame size={13} className="text-[var(--accent)]" />
-            <span className="text-[11px] font-semibold text-[var(--text)]">{streak} months above 70 in a row</span>
+          <div className="flex items-center gap-2 bg-[var(--accent)]/10 rounded-full px-3 py-1">
+            <IconFlame size={16} className="text-[var(--accent)]" />
+            <span className="text-[14px] font-semibold text-[var(--text)]">{streak} months above 70 in a row</span>
           </div>
         )}
       </div>
 
       {history.length > 1 && (
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3.5 mb-3">
-          <p className="text-xs font-semibold text-[var(--text)] mb-2">Score history</p>
-          <div className="flex items-end gap-2 h-11">
+        <div className="bg-[var(--bg)]/40 rounded-xl p-4 mb-3">
+          <p className="text-sm font-semibold text-[var(--text)] mb-2">Score history</p>
+          <div className="flex items-end gap-2.5 h-11">
             {history.map((h) => (
               <div key={h.monthKey} className="flex-1 rounded-t" style={{ height: `${(h.score / maxScore) * 100}%`, background: h.monthKey === latest.monthKey ? 'var(--accent)' : 'var(--positive)' }} />
             ))}
           </div>
-          <div className="flex gap-2 mt-1">
-            {history.map((h) => <span key={h.monthKey} className="flex-1 text-center text-[9px] text-[var(--muted)]">{h.label}</span>)}
+          <div className="flex gap-2.5 mt-1">
+            {history.map((h) => <span key={h.monthKey} className="flex-1 text-center text-[11px] text-[var(--muted)]">{h.label}</span>)}
           </div>
         </div>
       )}
 
       {bias && bias.direction !== 'neutral' && (
-        <div className="bg-[var(--bg)]/40 rounded-xl p-3.5 mb-3">
-          <p className="text-xs font-semibold text-[var(--text)] mb-1">Your pattern</p>
-          <p className="text-xs text-[var(--text)]">You tend to {bias.direction === 'under' ? 'underestimate' : 'overestimate'} by about {Math.round(Math.abs(bias.avgSignedErrorPct) * 100)}% on average.</p>
+        <div className="bg-[var(--bg)]/40 rounded-xl p-4 mb-3">
+          <p className="text-sm font-semibold text-[var(--text)] mb-1">Your pattern</p>
+          <p className="text-sm text-[var(--text)]">You tend to {bias.direction === 'under' ? 'underestimate' : 'overestimate'} by about {Math.round(Math.abs(bias.avgSignedErrorPct) * 100)}% on average.</p>
         </div>
       )}
 
       <div className="max-w-xs">
-        <label className="text-[11px] text-[var(--muted)] block mb-1.5">This month&apos;s spend intention</label>
-        <div className="flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="₹35,000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-          <button onClick={() => { const n = parseFloat(input); if (n > 0) { onSetIntention(n); setInput(''); } }} className="bg-[var(--accent)] text-[var(--bg)] text-[11px] font-medium px-3 rounded-lg">Set</button>
+        <label className="text-[14px] text-[var(--muted)] block mb-1.5">This month&apos;s spend intention</label>
+        <div className="flex gap-2.5">
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="₹35,000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+          <button onClick={() => { const n = parseFloat(input); if (n > 0) { onSetIntention(n); setInput(''); } }} className="bg-[var(--accent)] text-[var(--bg)] text-[14px] font-medium px-3 rounded-lg">Set</button>
         </div>
       </div>
     </div>
@@ -422,16 +432,16 @@ function Subscriptions({ subs }: { subs: any[] }) {
   const total = subs.reduce((s, x) => s + (x.amount || 0), 0);
   return (
     <div>
-      {subs.length === 0 && <p className="text-xs text-[var(--muted)]">No flagged subscriptions yet. Automatic detection needs Gmail connected — for now, flag one manually from settings.</p>}
-      <div className="flex flex-col gap-2">
+      {subs.length === 0 && <p className="text-sm text-[var(--muted)]">No flagged subscriptions yet. Automatic detection needs Gmail connected — for now, flag one manually from settings.</p>}
+      <div className="flex flex-col gap-2.5">
         {subs.map((s) => (
           <div key={s.id} className="flex justify-between items-center bg-[var(--bg)]/40 rounded-lg px-3 py-2">
-            <div><p className="text-xs text-[var(--text)]">{s.merchant}</p><p className="text-[10px] text-[var(--muted)]">Flagged {new Date(s.flagged_at).toLocaleDateString('en-IN')}</p></div>
-            <span className="text-[10px] text-[var(--accent)]">{s.amount ? fmt(s.amount) : ''}</span>
+            <div><p className="text-sm text-[var(--text)]">{s.merchant}</p><p className="text-[12px] text-[var(--muted)]">Flagged {new Date(s.flagged_at).toLocaleDateString('en-IN')}</p></div>
+            <span className="text-[12px] text-[var(--accent)]">{s.amount ? fmt(s.amount) : ''}</span>
           </div>
         ))}
       </div>
-      {subs.length > 0 && <p className="text-[11px] text-[var(--muted)] mt-3">Total recurring: {fmt(total)}/mo</p>}
+      {subs.length > 0 && <p className="text-[14px] text-[var(--muted)] mt-3">Total recurring: {fmt(total)}/mo</p>}
     </div>
   );
 }
@@ -441,18 +451,18 @@ function Reflect({ reflections, onAdd }: { reflections: any[]; onAdd: (r: { good
   function submit() { if (!good && !regret && !wish) return; onAdd({ good, regret, wish }); setGood(''); setRegret(''); setWish(''); }
   return (
     <div>
-      <p className="text-[11px] text-[var(--muted)] mb-2">This week</p>
-      <textarea value={good} onChange={(e) => setGood(e.target.value)} placeholder="Felt genuinely good…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] mb-2" rows={2} />
-      <textarea value={regret} onChange={(e) => setRegret(e.target.value)} placeholder="Wish I hadn't…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] mb-2" rows={2} />
-      <textarea value={wish} onChange={(e) => setWish(e.target.value)} placeholder="Would have liked to spend on…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] mb-3" rows={2} />
-      <button onClick={submit} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-1.5 text-xs font-medium mb-4">Save this week&apos;s reflection</button>
-      <div className="flex flex-col gap-2">
+      <p className="text-[14px] text-[var(--muted)] mb-2">This week</p>
+      <textarea value={good} onChange={(e) => setGood(e.target.value)} placeholder="Felt genuinely good…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)] mb-2" rows={2} />
+      <textarea value={regret} onChange={(e) => setRegret(e.target.value)} placeholder="Wish I hadn't…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)] mb-2" rows={2} />
+      <textarea value={wish} onChange={(e) => setWish(e.target.value)} placeholder="Would have liked to spend on…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)] mb-3" rows={2} />
+      <button onClick={submit} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-1.5 text-sm font-medium mb-4">Save this week&apos;s reflection</button>
+      <div className="flex flex-col gap-2.5">
         {reflections.map((r) => (
-          <div key={r.id} className="bg-[var(--bg)]/40 border border-[var(--border)]/40 rounded-lg p-2.5">
-            <p className="text-[10px] text-[var(--muted)] mb-1.5">{new Date(r.created_at).toLocaleDateString('en-IN')}</p>
-            {r.good && <p className="text-xs text-[var(--text)] mb-1"><span className="text-[var(--positive)]">Good: </span>{r.good}</p>}
-            {r.regret && <p className="text-xs text-[var(--text)] mb-1"><span className="text-[var(--danger)]">Regret: </span>{r.regret}</p>}
-            {r.wish && <p className="text-xs text-[var(--text)]"><span className="text-[var(--accent)]">Wish: </span>{r.wish}</p>}
+          <div key={r.id} className="bg-[var(--bg)]/40 border border-[var(--border)]/40 rounded-lg p-3">
+            <p className="text-[12px] text-[var(--muted)] mb-1.5">{new Date(r.created_at).toLocaleDateString('en-IN')}</p>
+            {r.good && <p className="text-sm text-[var(--text)] mb-1"><span className="text-[var(--positive)]">Good: </span>{r.good}</p>}
+            {r.regret && <p className="text-sm text-[var(--text)] mb-1"><span className="text-[var(--danger)]">Regret: </span>{r.regret}</p>}
+            {r.wish && <p className="text-sm text-[var(--text)]"><span className="text-[var(--accent)]">Wish: </span>{r.wish}</p>}
           </div>
         ))}
       </div>
@@ -462,23 +472,23 @@ function Reflect({ reflections, onAdd }: { reflections: any[]; onAdd: (r: { good
 
 function DigestFeed({ digests }: { digests: Digest[] }) {
   const sorted = [...digests].sort((a, b) => b.period_end.localeCompare(a.period_end));
-  if (sorted.length === 0) return <p className="text-xs text-[var(--muted)]">Your first digest appears after the next Friday or Sunday 6pm passes.</p>;
+  if (sorted.length === 0) return <p className="text-sm text-[var(--muted)]">Your first digest appears after the next Friday or Sunday 6pm passes.</p>;
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-3">
       {sorted.map((d) => (
-        <div key={d.id} className="bg-[var(--bg)]/40 rounded-xl p-3.5" style={{ borderLeft: `3px solid ${d.kind === 'friday' ? 'var(--positive)' : 'var(--accent)'}` }}>
+        <div key={d.id} className="bg-[var(--bg)]/40 rounded-xl p-4" style={{ borderLeft: `3px solid ${d.kind === 'friday' ? 'var(--positive)' : 'var(--accent)'}` }}>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
-              {d.kind === 'friday' ? <IconSunrise size={15} style={{ color: 'var(--positive)' }} /> : <IconNotebook size={15} className="text-[var(--accent)]" />}
+            <span className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+              {d.kind === 'friday' ? <IconSunrise size={18} style={{ color: 'var(--positive)' }} /> : <IconNotebook size={18} className="text-[var(--accent)]" />}
               {d.kind === 'friday' ? 'Friday digest' : 'Sunday wrap'}
             </span>
-            <span className="text-[10px] text-[var(--muted)]">{new Date(d.period_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+            <span className="text-[12px] text-[var(--muted)]">{new Date(d.period_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
           </div>
-          <p className="text-xs text-[var(--text)] mb-2">{d.insight}</p>
+          <p className="text-sm text-[var(--text)] mb-2">{d.insight}</p>
           {d.top_categories.length > 0 && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {d.top_categories.map((c) => (
-                <div key={c.category} className="flex justify-between text-[11px] text-[var(--muted)]"><span>{c.category}</span><span>{fmt(c.amount)}</span></div>
+                <div key={c.category} className="flex justify-between text-[14px] text-[var(--muted)]"><span>{c.category}</span><span>{fmt(c.amount)}</span></div>
               ))}
             </div>
           )}
@@ -506,49 +516,49 @@ function Goals({ goals, contributions, onAddGoal, onLogContribution }: {
 
   return (
     <div>
-      <div className="bg-[var(--bg)]/40 rounded-xl p-3.5 mb-3">
+      <div className="bg-[var(--bg)]/40 rounded-xl p-4 mb-3">
         <GoalMountain progressPct={active.length ? Math.min(100, active.reduce((s, g) => {
           const saved = contribsByGoal(g.id).reduce((a, c) => a + c.amount, 0);
           return s + Math.min(100, (saved / g.target_amount) * 100);
         }, 0) / active.length) : 0} />
-        <p className="text-[11px] text-[var(--muted)] mt-1">{active.length} goal{active.length === 1 ? '' : 's'} in progress · {achieved.length} achieved</p>
+        <p className="text-[14px] text-[var(--muted)] mt-1">{active.length} goal{active.length === 1 ? '' : 's'} in progress · {achieved.length} achieved</p>
       </div>
 
       <SegmentedTabs tabs={[['active', 'Active'], ['achieved', 'Achieved']]} active={tab} onChange={(k) => setTab(k as 'active' | 'achieved')} />
 
-      <div className="flex flex-col gap-2.5 mt-3">
-        {list.length === 0 && <p className="text-xs text-[var(--muted)]">{tab === 'active' ? 'No active goals — add one below.' : 'Nothing achieved yet.'}</p>}
+      <div className="flex flex-col gap-3 mt-3">
+        {list.length === 0 && <p className="text-sm text-[var(--muted)]">{tab === 'active' ? 'No active goals — add one below.' : 'Nothing achieved yet.'}</p>}
 
         {tab === 'active' && list.map((g) => {
           const goalContribs = contribsByGoal(g.id);
           const pace = computeGoalPace(g, goalContribs);
           return (
-            <div key={g.id} className="bg-[var(--bg)]/40 rounded-xl p-3.5">
+            <div key={g.id} className="bg-[var(--bg)]/40 rounded-xl p-4">
               <div className="flex justify-between items-center mb-1.5">
-                <span className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5"><IconFlag size={15} className="text-[var(--accent)]" />{g.name}</span>
-                <span className="text-[10px] text-[var(--muted)]">{g.target_date ? `by ${new Date(g.target_date + 'T12:00:00').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}` : 'no fixed date'}</span>
+                <span className="text-base font-semibold text-[var(--text)] flex items-center gap-2"><IconFlag size={18} className="text-[var(--accent)]" />{g.name}</span>
+                <span className="text-[12px] text-[var(--muted)]">{g.target_date ? `by ${new Date(g.target_date + 'T12:00:00').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}` : 'no fixed date'}</span>
               </div>
               <GoalMountain progressPct={pace.progressPct} />
-              <div className="flex justify-between text-[11px] text-[var(--muted)] mt-1 mb-2">
+              <div className="flex justify-between text-[14px] text-[var(--muted)] mt-1 mb-2">
                 <span>{fmt(pace.savedSoFar)} of {fmt(g.target_amount)}</span>
                 <span>{pace.progressPct}% to the summit</span>
               </div>
               {pace.message && (
-                <div className="rounded-lg p-2 mb-2" style={{ background: pace.status === 'behind' ? 'color-mix(in srgb, var(--danger), transparent 88%)' : 'color-mix(in srgb, var(--accent), transparent 90%)' }}>
-                  <p className="text-[11px]" style={{ color: 'var(--text)' }}>{pace.message}</p>
+                <div className="rounded-lg p-2.5 mb-2" style={{ background: pace.status === 'behind' ? 'color-mix(in srgb, var(--danger), transparent 88%)' : 'color-mix(in srgb, var(--accent), transparent 90%)' }}>
+                  <p className="text-[14px]" style={{ color: 'var(--text)' }}>{pace.message}</p>
                 </div>
               )}
-              <div className="flex gap-2 items-center bg-[var(--accent)]/8 rounded-lg px-2.5 py-1.5">
-                <IconPlus size={13} className="text-[var(--accent)] shrink-0" />
+              <div className="flex gap-2.5 items-center bg-[var(--accent)]/8 rounded-lg px-2.5 py-1.5">
+                <IconPlus size={16} className="text-[var(--accent)] shrink-0" />
                 <input
                   value={contribInputs[g.id] || ''}
                   onChange={(e) => setContribInputs((prev) => ({ ...prev, [g.id]: e.target.value }))}
                   placeholder={pace.requiredWeeklyPace ? `Add ₹${Math.round(pace.requiredWeeklyPace).toLocaleString('en-IN')} this week` : 'Add an amount'}
-                  className="flex-1 bg-transparent border-none text-[11px] text-[var(--text)] outline-none"
+                  className="flex-1 bg-transparent border-none text-[14px] text-[var(--text)] outline-none"
                 />
                 <button
                   onClick={() => { const n = parseFloat(contribInputs[g.id] || ''); if (n > 0) { onLogContribution(g.id, n); setContribInputs((prev) => ({ ...prev, [g.id]: '' })); } }}
-                  className="bg-[var(--accent)] text-[var(--bg)] text-[10px] font-medium px-2.5 py-1 rounded-md shrink-0"
+                  className="bg-[var(--accent)] text-[var(--bg)] text-[12px] font-medium px-2.5 py-1 rounded-md shrink-0"
                 >
                   Log it
                 </button>
@@ -558,13 +568,13 @@ function Goals({ goals, contributions, onAddGoal, onLogContribution }: {
         })}
 
         {tab === 'achieved' && list.map((g) => (
-          <div key={g.id} className="rounded-xl p-3.5 flex items-center gap-3" style={{ background: 'color-mix(in srgb, var(--positive), transparent 75%)' }}>
+          <div key={g.id} className="rounded-xl p-4 flex items-center gap-3.5" style={{ background: 'color-mix(in srgb, var(--positive), transparent 75%)' }}>
             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--positive)' }}>
-              <IconTrophy size={18} style={{ color: 'var(--bg)' }} />
+              <IconTrophy size={21} style={{ color: 'var(--bg)' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--text)]">{g.name}</p>
-              <p className="text-[11px] text-[var(--muted)]">{fmt(g.target_amount)} · achieved {new Date(g.achieved_at!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              <p className="text-base font-semibold text-[var(--text)]">{g.name}</p>
+              <p className="text-[14px] text-[var(--muted)]">{fmt(g.target_amount)} · achieved {new Date(g.achieved_at!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
             </div>
           </div>
         ))}
@@ -572,13 +582,13 @@ function Goals({ goals, contributions, onAddGoal, onLogContribution }: {
 
       {tab === 'active' && (
         showAdd ? (
-          <div className="bg-[var(--bg)]/40 rounded-xl p-3.5 mt-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="What are you saving for?" className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] mb-2" />
-            <div className="flex gap-2 mb-2">
-              <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Target amount" type="number" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-              <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
+          <div className="bg-[var(--bg)]/40 rounded-xl p-4 mt-3">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="What are you saving for?" className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)] mb-2" />
+            <div className="flex gap-2.5 mb-2">
+              <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Target amount" type="number" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+              <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => {
                   const n = parseFloat(amount);
@@ -586,16 +596,16 @@ function Goals({ goals, contributions, onAddGoal, onLogContribution }: {
                   onAddGoal({ name: name.trim(), target_amount: n, target_date: date || null });
                   setName(''); setAmount(''); setDate(''); setShowAdd(false);
                 }}
-                className="flex-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg py-1.5 text-xs font-medium"
+                className="flex-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg py-1.5 text-sm font-medium"
               >
                 Add goal
               </button>
-              <button onClick={() => setShowAdd(false)} className="border border-[var(--border)]/70 text-[var(--muted)] rounded-lg px-3 text-xs">Cancel</button>
+              <button onClick={() => setShowAdd(false)} className="border border-[var(--border)]/70 text-[var(--muted)] rounded-lg px-3 text-sm">Cancel</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setShowAdd(true)} className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[var(--accent)]/40 rounded-xl py-2.5 text-xs font-medium text-[var(--accent)] mt-3">
-            <IconPlus size={14} />Add a goal
+          <button onClick={() => setShowAdd(true)} className="w-full flex items-center justify-center gap-2 border border-dashed border-[var(--accent)]/40 rounded-xl py-2.5 text-sm font-medium text-[var(--accent)] mt-3">
+            <IconPlus size={17} />Add a goal
           </button>
         )
       )}
