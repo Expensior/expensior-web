@@ -270,6 +270,23 @@ export function extractMerchantDescription(raw: string): string {
   return stripTrailingPreposition(text);
 }
 
+// Subscription renewal subjects put the merchant FIRST — "Netflix
+// subscription renewed", "Spotify Premium auto-renewed" — the opposite
+// structure from bank alerts, so extractMerchantDescription's
+// preposition-based approach doesn't apply here. Cut the subject at the
+// earliest trigger word instead.
+export function extractSubscriptionMerchant(subject: string): string {
+  const triggers = ['subscription', 'membership', 'auto-renewed', 'auto renewed', 'renewed', 'premium', 'payment successful', 'billing', ':'];
+  const lower = subject.toLowerCase();
+  let cutIndex = subject.length;
+  for (const trigger of triggers) {
+    const idx = lower.indexOf(trigger);
+    if (idx > 0 && idx < cutIndex) cutIndex = idx;
+  }
+  const merchant = subject.slice(0, cutIndex).trim().replace(/^your\s+/i, '').trim();
+  return merchant || subject.slice(0, 60);
+}
+
 export function todayStr(): string {
   const d = new Date();
   const y = d.getFullYear();

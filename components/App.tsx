@@ -46,6 +46,7 @@ export default function App() {
   const [categoryRecords, setCategoryRecords] = useState<Category[]>([]);
   const [monthlyPot, setMonthlyPot] = useState<number | null>(null);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
+  const [textSize, setTextSize] = useState<'compact' | 'default' | 'large'>('default');
   const [apiKey, setApiKey] = useState('');
   const [reflections, setReflections] = useState<any[]>([]);
   const [flaggedSubs, setFlaggedSubs] = useState<any[]>([]);
@@ -57,8 +58,6 @@ export default function App() {
   const [digests, setDigests] = useState<Digest[]>([]);
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [lastVisitedAt, setLastVisitedAt] = useState<string | null>(null);
-  const [dailyPromptEnabled, setDailyPromptEnabled] = useState(true);
-  const [dailyPromptHour, setDailyPromptHour] = useState(21);
   const [fridayDigestEnabled, setFridayDigestEnabled] = useState(true);
   const [sundayWrapEnabled, setSundayWrapEnabled] = useState(true);
   const [displayName, setDisplayName] = useState('');
@@ -82,7 +81,7 @@ export default function App() {
       const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
         supabase.from('transactions').select('*').order('date', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name, daily_prompt_enabled, daily_prompt_hour, friday_digest_enabled, sunday_wrap_enabled').eq('user_id', user.id).maybeSingle(),
+        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name, friday_digest_enabled, sunday_wrap_enabled, text_size').eq('user_id', user.id).maybeSingle(),
         supabase.from('reflections').select('*').order('created_at', { ascending: false }),
         supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
         supabase.from('recurring_templates').select('*').order('sort_order'),
@@ -115,9 +114,8 @@ export default function App() {
         setApiKey(settingsRes.data.claude_api_key || '');
         setLastVisitedAt(settingsRes.data.last_visited_at || null);
         if (settingsRes.data.display_name) setDisplayName(settingsRes.data.display_name);
-        setDailyPromptEnabled(settingsRes.data.daily_prompt_enabled ?? true);
-        setDailyPromptHour(settingsRes.data.daily_prompt_hour ?? 21);
         setFridayDigestEnabled(settingsRes.data.friday_digest_enabled ?? true);
+        setTextSize(settingsRes.data.text_size || 'default');
         setSundayWrapEnabled(settingsRes.data.sunday_wrap_enabled ?? true);
       }
       if (reflRes.data) setReflections(reflRes.data);
@@ -173,6 +171,17 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-text-size', textSize);
+  }, [textSize]);
+
+  async function saveTextSize(size: 'compact' | 'default' | 'large') {
+    setTextSize(size);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, text_size: size });
+  }
+
   async function saveTheme(id: string) {
     setTheme(id);
     const { data: { user } } = await supabase.auth.getUser();
@@ -187,14 +196,6 @@ export default function App() {
     if (!trimmed) return;
     await supabase.from('settings').upsert({ user_id: user.id, display_name: trimmed });
     setDisplayName(trimmed);
-  }
-
-  async function saveDailyPrompt(enabled: boolean, hour: number) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, daily_prompt_enabled: enabled, daily_prompt_hour: hour });
-    setDailyPromptEnabled(enabled);
-    setDailyPromptHour(hour);
   }
 
   async function saveFridayDigestEnabled(enabled: boolean) {
@@ -215,6 +216,13 @@ export default function App() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !message.trim()) return;
     await supabase.from('feedback').insert({ user_id: user.id, message: message.trim() });
+  }
+
+  async function addFlaggedSubscription(merchant: string, amount: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !merchant.trim()) return;
+    const { data } = await supabase.from('flagged_subscriptions').insert({ user_id: user.id, merchant: merchant.trim(), amount: amount || null }).select().single();
+    if (data) setFlaggedSubs((prev) => [data, ...prev]);
   }
 
   async function addTransaction(t: NewTransaction) {
@@ -412,17 +420,17 @@ export default function App() {
   });
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-base">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-sc-16">Loading…</div>;
   }
 
   if (loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center">
-          <p className="text-[var(--text)] text-base mb-2">Couldn&apos;t load your data</p>
-          <p className="text-[var(--muted)] text-sm mb-4">{loadError}</p>
-          <p className="text-[var(--muted)] text-sm mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
-          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sm font-medium">Try again</button>
+          <p className="text-[var(--text)] text-sc-16 mb-2">Couldn&apos;t load your data</p>
+          <p className="text-[var(--muted)] text-sc-14 mb-4">{loadError}</p>
+          <p className="text-[var(--muted)] text-sc-14 mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
+          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sc-14 font-medium">Try again</button>
         </div>
       </div>
     );
@@ -435,16 +443,16 @@ export default function App() {
           <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
           {editingName ? (
             <div className="flex items-center gap-2">
-              <span className="text-xl font-semibold text-[var(--text)] tracking-tight">Hello,</span>
+              <span className="text-sc-20 font-semibold text-[var(--text)] tracking-tight">Hello,</span>
               <input
                 autoFocus
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { saveDisplayName(nameInput); setEditingName(false); } if (e.key === 'Escape') setEditingName(false); }}
-                className="text-xl font-semibold text-[var(--text)] tracking-tight bg-[var(--surface)] border border-[var(--accent)] rounded-lg px-2 py-0.5 w-40"
+                className="text-sc-20 font-semibold text-[var(--text)] tracking-tight bg-[var(--surface)] border border-[var(--accent)] rounded-lg px-2 py-0.5 w-40"
               />
-              <button onClick={() => { saveDisplayName(nameInput); setEditingName(false); }} className="text-sm text-[var(--accent)] font-medium">Save</button>
-              <button onClick={() => setEditingName(false)} className="text-sm text-[var(--muted)]">Cancel</button>
+              <button onClick={() => { saveDisplayName(nameInput); setEditingName(false); }} className="text-sc-14 text-[var(--accent)] font-medium">Save</button>
+              <button onClick={() => setEditingName(false)} className="text-sc-14 text-[var(--muted)]">Cancel</button>
             </div>
           ) : (
             <button
@@ -452,7 +460,7 @@ export default function App() {
               className="flex items-center gap-1.5 group"
               title="Click to edit your name"
             >
-              <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">
+              <h1 className="text-sc-20 font-semibold text-[var(--text)] tracking-tight">
                 {displayName ? `Hello, ${displayName}` : 'Expensior!'}
               </h1>
               <IconPencil size={16} className="text-[var(--muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -460,19 +468,19 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={signOut} className="text-[15px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
+          <button onClick={signOut} className="text-sc-15 text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
           <button onClick={() => setSettingsOpen(true)} aria-label="Settings" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors"><IconSettings size={18} /></button>
         </div>
       </div>
 
       {gmailNotice && (
-        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-sm rounded-lg px-3 py-2 mb-4 shrink-0">
+        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-sc-14 rounded-lg px-3 py-2 mb-4 shrink-0">
           {gmailNotice}
         </div>
       )}
 
       <div className="flex gap-4 flex-1 min-h-0">
-        <div className="min-h-0 relative" style={{ width: '70%' }}>
+        <div className="min-h-0" style={{ width: '70%' }}>
           <Dashboard
             allTransactions={transactions}
             monthlyPot={monthlyPot}
@@ -488,15 +496,8 @@ export default function App() {
             intentions={intentions}
             onSetIntention={setIntention}
             lastVisitedAt={lastVisitedAt}
-          />
-          <EntryFab
-            categories={categories}
-            recurringTemplates={recurringTemplates}
-            hasApiKey={!!apiKey}
             gmailConnected={gmailConnected}
-            onAdd={addTransaction}
-            onBulkAdd={bulkAddTransactions}
-            onLogRecurring={logRecurring}
+            onAddFlaggedSubscription={addFlaggedSubscription}
           />
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0" style={{ width: '30%' }}>
@@ -522,6 +523,16 @@ export default function App() {
         </div>
       </div>
 
+      <EntryFab
+        categories={categories}
+        recurringTemplates={recurringTemplates}
+        hasApiKey={!!apiKey}
+        gmailConnected={gmailConnected}
+        onAdd={addTransaction}
+        onBulkAdd={bulkAddTransactions}
+        onLogRecurring={logRecurring}
+      />
+
       {editingTxn && (
         <EditTransactionModal
           categories={categories}
@@ -545,6 +556,8 @@ export default function App() {
         onSaveMonthlyPot={saveMonthlyPot}
         theme={theme}
         onSaveTheme={saveTheme}
+        textSize={textSize}
+        onSaveTextSize={saveTextSize}
         apiKey={apiKey}
         onSaveApiKey={saveApiKey}
         onExportCSV={exportCSV}
@@ -552,15 +565,13 @@ export default function App() {
         recurringTemplates={recurringTemplates}
         onAddRecurringTemplate={addRecurringTemplate}
         onDeleteRecurringTemplate={deleteRecurringTemplate}
-        dailyPromptEnabled={dailyPromptEnabled}
-        dailyPromptHour={dailyPromptHour}
-        onSaveDailyPrompt={saveDailyPrompt}
         fridayDigestEnabled={fridayDigestEnabled}
         onSaveFridayDigestEnabled={saveFridayDigestEnabled}
         sundayWrapEnabled={sundayWrapEnabled}
         onSaveSundayWrapEnabled={saveSundayWrapEnabled}
         onSendFeedback={sendFeedback}
         gmailConnected={gmailConnected}
+        onAddFlaggedSubscription={addFlaggedSubscription}
       />
     </div>
   );

@@ -14,7 +14,30 @@
   --cat-3: color-mix(in srgb, var(--positive), black 15%);
   --cat-4: color-mix(in srgb, var(--border), white 30%);
   --cat-5: color-mix(in srgb, color-mix(in srgb, var(--accent), var(--danger) 45%), black 12%);
+  --text-offset: 0px;
 }
+
+/* Text size preference — additive, not multiplicative. A multiplier would
+   make an already-tiny 8px badge vanish in Compact mode, or an already-huge
+   32px number explode in Large mode. A fixed offset avoids both, and the
+   max() floor guarantees nothing ever drops below 8px regardless of offset. */
+[data-text-size="compact"] { --text-offset: -1px; }
+[data-text-size="large"] { --text-offset: 3px; }
+
+.text-sc-8 { font-size: calc(max(8px, 8px + var(--text-offset))); }
+.text-sc-9 { font-size: calc(max(8px, 9px + var(--text-offset))); }
+.text-sc-10 { font-size: calc(max(8px, 10px + var(--text-offset))); }
+.text-sc-11 { font-size: calc(max(8px, 11px + var(--text-offset))); }
+.text-sc-12 { font-size: calc(max(8px, 12px + var(--text-offset))); }
+.text-sc-13 { font-size: calc(max(8px, 13px + var(--text-offset))); }
+.text-sc-14 { font-size: calc(max(8px, 14px + var(--text-offset))); }
+.text-sc-15 { font-size: calc(max(8px, 15px + var(--text-offset))); }
+.text-sc-16 { font-size: calc(max(8px, 16px + var(--text-offset))); }
+.text-sc-17 { font-size: calc(max(8px, 17px + var(--text-offset))); }
+.text-sc-18 { font-size: calc(max(8px, 18px + var(--text-offset))); }
+.text-sc-20 { font-size: calc(max(8px, 20px + var(--text-offset))); }
+.text-sc-22 { font-size: calc(max(8px, 22px + var(--text-offset))); }
+.text-sc-32 { font-size: calc(max(8px, 32px + var(--text-offset))); }
 
 /* Winter solstice — light, cool. Border derived from accent; muted text
    derived as the midpoint between text and background (none of the five

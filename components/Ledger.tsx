@@ -199,7 +199,7 @@ export default function Ledger({
   }
 
   const chip = (active: boolean) =>
-    `text-[14px] px-2.5 py-1.5 rounded-full border cursor-pointer ${active ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`;
+    `text-sc-14 px-2.5 py-1.5 rounded-full border cursor-pointer ${active ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`;
 
   const potPct = monthlyPot ? (monthTotal / monthlyPot) * 100 : null;
   const sparkMax = Math.max(...sparkline.daily, 1);
@@ -209,61 +209,58 @@ export default function Ledger({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-center gap-2 mb-2">
+      <div className="flex items-center justify-center gap-1 mb-3">
+        <button onClick={onPrevMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-sc-18 px-1 transition-colors shrink-0">‹</button>
         {nearbyMonths.map((m) => (
           <button
             key={m.offset}
-            onClick={() => m.offset !== 0 && onJumpMonths(m.offset)}
-            className="text-[12px] px-2 py-1 rounded-full transition-colors"
+            onClick={() => m.offset !== 0 ? onJumpMonths(m.offset) : onToday()}
+            className="px-2.5 py-1 rounded-full transition-colors"
             style={m.offset === 0
-              ? { background: 'var(--accent)', color: 'var(--bg)', fontWeight: 600 }
-              : { color: 'var(--muted)' }}
+              ? { background: 'var(--accent)', color: 'var(--bg)', fontWeight: 600, fontSize: 15 }
+              : { color: 'var(--muted)', fontSize: 12 }}
           >
-            {m.label}
+            {m.offset === 0 ? monthLabel : m.label}
           </button>
         ))}
-      </div>
-      <div className="flex items-center justify-center gap-2 mb-3">
-        <button onClick={onPrevMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-lg px-1 transition-colors">‹</button>
-        <button onClick={onToday} className="text-lg font-semibold text-[var(--text)] tracking-tight">{monthLabel}</button>
-        <button onClick={onNextMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-lg px-1 transition-colors">›</button>
+        <button onClick={onNextMonth} className="text-[var(--muted)] hover:text-[var(--text)] text-sc-18 px-1 transition-colors shrink-0">›</button>
       </div>
 
       {potPct !== null ? (
         <div className="flex items-center gap-4 bg-[var(--bg)]/40 rounded-2xl p-4 mb-3">
           <div className="rounded-full shrink-0" style={{ width: 72, height: 72, background: donutGradient(potPct) }}>
             <div className="rounded-full flex items-center justify-center" style={{ width: 52, height: 52, margin: 10, background: 'var(--surface)' }}>
-              <span className="text-base font-bold text-[var(--text)]">{Math.round(potPct)}%</span>
+              <span className="text-sc-16 font-bold text-[var(--text)]">{Math.round(potPct)}%</span>
             </div>
           </div>
           <div>
-            <p className="text-lg font-bold text-[var(--text)]">{fmt(monthTotal)}</p>
-            <p className="text-[13px] text-[var(--muted)]">of {fmt(monthlyPot!)} pot</p>
+            <p className="text-sc-18 font-bold text-[var(--text)]">{fmt(monthTotal)}</p>
+            <p className="text-sc-13 text-[var(--muted)]">of {fmt(monthlyPot!)} pot</p>
           </div>
         </div>
       ) : (
-        <p className="text-[22px] font-bold text-[var(--positive)] tracking-tight mb-3">{fmt(monthTotal)}<span className="text-[16px] font-normal text-[var(--muted)] ml-1.5">spent</span></p>
+        <p className="text-sc-22 font-bold text-[var(--positive)] tracking-tight mb-3">{fmt(monthTotal)}<span className="text-sc-16 font-normal text-[var(--muted)] ml-1.5">spent</span></p>
       )}
 
       {highlights && (
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--accent)' }}>
             <IconReceipt2 size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.28)' }} />
-            <p className="text-[9px] relative" style={{ color: 'rgba(255,255,255,.8)' }}>Biggest expense</p>
-            <p className="text-[15px] font-bold relative text-white">{fmt(highlights.biggest.amount)}</p>
-            <p className="text-[8px] relative truncate" style={{ color: 'rgba(255,255,255,.75)' }}>{highlights.biggest.description}</p>
+            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.8)' }}>Biggest expense</p>
+            <p className="text-sc-15 font-bold relative text-white">{fmt(highlights.biggest.amount)}</p>
+            <p className="text-sc-8 relative truncate" style={{ color: 'rgba(255,255,255,.75)' }}>{highlights.biggest.description}</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: CAT_COLORS[highlights.topCategory.name] || 'var(--positive)' }}>
             <IconCategory size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
-            <p className="text-[9px] relative" style={{ color: 'rgba(255,255,255,.85)' }}>Most frequent</p>
-            <p className="text-[15px] font-bold relative text-white truncate">{highlights.topCategory.name}</p>
-            <p className="text-[8px] relative" style={{ color: 'rgba(255,255,255,.8)' }}>{highlights.topCategory.count} transactions</p>
+            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.85)' }}>Most frequent</p>
+            <p className="text-sc-15 font-bold relative text-white truncate">{highlights.topCategory.name}</p>
+            <p className="text-sc-8 relative" style={{ color: 'rgba(255,255,255,.8)' }}>{highlights.topCategory.count} transactions</p>
           </div>
-          <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--surface)' }}>
-            <IconFlame size={28} className="absolute top-1.5 right-1.5" style={{ color: 'color-mix(in srgb, var(--text), transparent 78%)' }} />
-            <p className="text-[9px] relative text-[var(--muted)]">Busiest day</p>
-            <p className="text-[15px] font-bold relative text-[var(--text)]">{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-            <p className="text-[8px] relative text-[var(--muted)]">{highlights.busiestDay.count} transactions</p>
+          <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--border)' }}>
+            <IconFlame size={28} className="absolute top-1.5 right-1.5" style={{ color: 'rgba(255,255,255,.3)' }} />
+            <p className="text-sc-9 relative" style={{ color: 'rgba(255,255,255,.8)' }}>Busiest day</p>
+            <p className="text-sc-15 font-bold relative text-white">{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+            <p className="text-sc-8 relative" style={{ color: 'rgba(255,255,255,.75)' }}>{highlights.busiestDay.count} transactions</p>
           </div>
         </div>
       )}
@@ -272,20 +269,20 @@ export default function Ledger({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search ledger"
-        className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-base text-[var(--text)] placeholder:text-[var(--muted)] mb-2 focus:outline-none focus:border-[var(--accent)]/60 transition-colors"
+        className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sc-16 text-[var(--text)] placeholder:text-[var(--muted)] mb-2 focus:outline-none focus:border-[var(--accent)]/60 transition-colors"
       />
 
       <div className="flex justify-between items-center bg-[var(--bg)]/40 rounded-lg px-3 py-2 mb-2">
-        <span className="text-[12px] text-[var(--muted)]">Last 7 days</span>
+        <span className="text-sc-12 text-[var(--muted)]">Last 7 days</span>
         <svg viewBox="0 0 100 30" style={{ width: 70, height: 20 }}>
           <polyline points={sparkPoints} fill="none" stroke="var(--accent)" strokeWidth="2" />
         </svg>
         {sparkline.deltaPct !== null ? (
-          <span className="text-[12px] font-semibold" style={{ color: sparkline.deltaPct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>
+          <span className="text-sc-12 font-semibold" style={{ color: sparkline.deltaPct >= 0 ? 'var(--danger)' : 'var(--positive)' }}>
             {sparkline.deltaPct >= 0 ? '▲' : '▼'} {Math.abs(Math.round(sparkline.deltaPct))}%
           </span>
         ) : (
-          <span className="text-[12px] text-[var(--muted)]">—</span>
+          <span className="text-sc-12 text-[var(--muted)]">—</span>
         )}
       </div>
 
@@ -293,13 +290,13 @@ export default function Ledger({
         onClick={() => setFiltersOpen((v) => !v)}
         className="w-full flex items-center justify-between bg-[var(--bg)]/40 rounded-lg px-3 py-2 mb-2"
       >
-        <span className="flex items-center gap-2 text-[14px] font-medium text-[var(--text)]">
+        <span className="flex items-center gap-2 text-sc-14 font-medium text-[var(--text)]">
           Filters
           {anyChipActive && (
             <span
               onClick={(e) => { e.stopPropagation(); setFilter(emptyFilter()); }}
               title="Clear all filters"
-              className="bg-[var(--accent)] text-[var(--bg)] text-[11px] font-semibold px-2 py-0.5 rounded-full"
+              className="bg-[var(--accent)] text-[var(--bg)] text-sc-11 font-semibold px-2 py-0.5 rounded-full"
             >
               {activeFilterCount}
             </span>
@@ -326,8 +323,8 @@ export default function Ledger({
       <div className="flex-1 overflow-auto -mx-1 px-1.5">
         {grouped.length === 0 && (
           <div className="text-center mt-10">
-            <p className="text-base font-medium text-[var(--text)] mb-1">Nothing here yet</p>
-            <p className="text-[14px] text-[var(--muted)]">{anyChipActive || search ? 'No transactions match your filters.' : 'Log your first expense this month to see it here.'}</p>
+            <p className="text-sc-16 font-medium text-[var(--text)] mb-1">Nothing here yet</p>
+            <p className="text-sc-14 text-[var(--muted)]">{anyChipActive || search ? 'No transactions match your filters.' : 'Log your first expense this month to see it here.'}</p>
           </div>
         )}
         {grouped.map(([date, txns]) => {
@@ -343,14 +340,14 @@ export default function Ledger({
               {showWeekDivider && (
                 <div className="flex items-center gap-2.5 my-2">
                   <div className="flex-1 h-px bg-[var(--border)]/30" />
-                  <span className="text-[11px] text-[var(--muted)] whitespace-nowrap">Week of {new Date(wk + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {fmt(weekTotals.get(wk) || 0)}</span>
+                  <span className="text-sc-11 text-[var(--muted)] whitespace-nowrap">Week of {new Date(wk + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {fmt(weekTotals.get(wk) || 0)}</span>
                   <div className="flex-1 h-px bg-[var(--border)]/30" />
                 </div>
               )}
               <div
-                className="sticky top-0 flex justify-between text-[14px] uppercase tracking-wide font-semibold py-2"
+                className="sticky top-0 flex justify-between text-sc-14 uppercase tracking-wide font-semibold py-2"
                 style={isToday
-                  ? { color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent), transparent 92%)', paddingLeft: 8, paddingRight: 8, marginLeft: -8, marginRight: -8, borderRadius: 6 }
+                  ? { color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent), var(--surface) 85%)', paddingLeft: 8, paddingRight: 8, marginLeft: -8, marginRight: -8, borderRadius: 6 }
                   : { color: 'var(--muted)', background: 'var(--surface)' }}
               >
                 <span>{isToday ? 'Today' : new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
@@ -370,21 +367,21 @@ export default function Ledger({
                       style={{ width: `${fillPct}%`, background: `color-mix(in srgb, ${CAT_COLORS[t.category] || 'var(--muted)'}, transparent 82%)` }}
                     />
                     <span className="w-2 h-2 rounded-full shrink-0 relative" style={{ background: CAT_COLORS[t.category] || 'var(--muted)' }} />
-                    <span className="text-base text-[var(--text)] truncate flex-1 relative">{t.description}</span>
+                    <span className="text-sc-16 text-[var(--text)] truncate flex-1 relative">{t.description}</span>
                     {t.regret && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 relative" style={{ background: 'color-mix(in srgb, var(--danger), transparent 88%)', color: 'var(--danger)' }}>
+                      <span className="text-sc-10 font-semibold px-1.5 py-0.5 rounded shrink-0 relative" style={{ background: 'color-mix(in srgb, var(--danger), transparent 88%)', color: 'var(--danger)' }}>
                         Regret
                       </span>
                     )}
                     <span
-                      className="text-base font-medium shrink-0 relative"
+                      className="text-sc-16 font-medium shrink-0 relative"
                       style={{ color: t.type !== 'expense' ? 'var(--positive)' : t.indulgence ? 'var(--accent)' : 'var(--text)' }}
                     >
                       {t.type !== 'expense' ? '+' : '-'}{fmt(t.amount)}
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
-                      className="opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--danger)] text-base shrink-0 transition-opacity relative"
+                      className="opacity-0 group-hover:opacity-100 text-[var(--muted)] hover:text-[var(--danger)] text-sc-16 shrink-0 transition-opacity relative"
                       aria-label="Delete"
                     >✕</button>
                   </div>

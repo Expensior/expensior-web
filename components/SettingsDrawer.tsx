@@ -18,6 +18,8 @@ export default function SettingsDrawer({
   onSaveMonthlyPot,
   theme,
   onSaveTheme,
+  textSize,
+  onSaveTextSize,
   apiKey,
   onSaveApiKey,
   onExportCSV,
@@ -25,15 +27,13 @@ export default function SettingsDrawer({
   recurringTemplates,
   onAddRecurringTemplate,
   onDeleteRecurringTemplate,
-  dailyPromptEnabled,
-  dailyPromptHour,
-  onSaveDailyPrompt,
   fridayDigestEnabled,
   onSaveFridayDigestEnabled,
   sundayWrapEnabled,
   onSaveSundayWrapEnabled,
   onSendFeedback,
   gmailConnected,
+  onAddFlaggedSubscription,
 }: {
   open: boolean;
   onClose: () => void;
@@ -47,6 +47,8 @@ export default function SettingsDrawer({
   onSaveMonthlyPot: (n: number) => void;
   theme: string;
   onSaveTheme: (id: string) => void;
+  textSize: 'compact' | 'default' | 'large';
+  onSaveTextSize: (size: 'compact' | 'default' | 'large') => void;
   apiKey: string;
   onSaveApiKey: (k: string) => void;
   onExportCSV: () => void;
@@ -54,15 +56,13 @@ export default function SettingsDrawer({
   recurringTemplates: RecurringTemplate[];
   onAddRecurringTemplate: (t: Omit<RecurringTemplate, 'id' | 'sort_order'>) => void;
   onDeleteRecurringTemplate: (id: string) => void;
-  dailyPromptEnabled: boolean;
-  dailyPromptHour: number;
-  onSaveDailyPrompt: (enabled: boolean, hour: number) => void;
   fridayDigestEnabled: boolean;
   onSaveFridayDigestEnabled: (enabled: boolean) => void;
   sundayWrapEnabled: boolean;
   onSaveSundayWrapEnabled: (enabled: boolean) => void;
   onSendFeedback: (message: string) => void;
   gmailConnected: boolean;
+  onAddFlaggedSubscription: (merchant: string, amount: number) => void;
 }) {
   const [newCat, setNewCat] = useState('');
   const [pot, setPot] = useState(monthlyPot?.toString() || '');
@@ -77,6 +77,8 @@ export default function SettingsDrawer({
   const [editCatName, setEditCatName] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [subMerchant, setSubMerchant] = useState('');
+  const [subAmount, setSubAmount] = useState('');
   const apiKeySectionRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES.find((t) => t.id === theme);
@@ -89,7 +91,7 @@ export default function SettingsDrawer({
         className={`fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--bg)] border-l border-[var(--border)] z-50 transition-transform overflow-y-auto ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-base font-medium text-[var(--text)]">Settings</h2>
+          <h2 className="text-sc-16 font-medium text-[var(--text)]">Settings</h2>
           <button onClick={onClose} aria-label="Close settings"><IconX size={18} className="text-[var(--muted)]" /></button>
         </div>
 
@@ -126,7 +128,7 @@ export default function SettingsDrawer({
                   <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
                 ))}
               </div>
-              <span className="text-sm text-[var(--text)] flex-1">{(currentTheme || THEMES[0]).name}</span>
+              <span className="text-sc-14 text-[var(--text)] flex-1">{(currentTheme || THEMES[0]).name}</span>
               <IconChevronDown size={16} className="text-[var(--muted)] transition-transform" style={{ transform: appearanceOpen ? 'rotate(180deg)' : 'none' }} />
             </button>
             {appearanceOpen && (
@@ -146,12 +148,30 @@ export default function SettingsDrawer({
                         <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
                       ))}
                     </div>
-                    <span className="text-sm text-[var(--text)] flex-1">{t.name}</span>
+                    <span className="text-sc-14 text-[var(--text)] flex-1">{t.name}</span>
                     {theme === t.id && <IconCheck size={16} className="text-[var(--accent)] shrink-0" />}
                   </button>
                 ))}
               </div>
             )}
+
+            <label className="text-sc-13 text-[var(--muted)] block mt-4 mb-1.5">Text size</label>
+            <div className="flex gap-2">
+              {(['compact', 'default', 'large'] as const).map((size) => (
+                <button
+                  key={size}
+                  onClick={() => onSaveTextSize(size)}
+                  className="flex-1 rounded-lg py-2 text-sc-13 font-medium capitalize border transition-colors"
+                  style={{
+                    borderColor: textSize === size ? 'var(--accent)' : 'var(--border)',
+                    background: textSize === size ? 'color-mix(in srgb, var(--accent), transparent 85%)' : 'transparent',
+                    color: textSize === size ? 'var(--accent)' : 'var(--muted)',
+                  }}
+                >
+                  {size === 'compact' ? 'A-' : size === 'large' ? 'A+' : 'A'}
+                </button>
+              ))}
+            </div>
           </Section>
 
           <Section title="Categories & budget">
@@ -167,10 +187,10 @@ export default function SettingsDrawer({
                         if (e.key === 'Enter') { onRenameCategory(c.id, editCatName); setEditingCatId(null); }
                         if (e.key === 'Escape') setEditingCatId(null);
                       }}
-                      className="flex-1 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sm text-[var(--text)]"
+                      className="flex-1 bg-[var(--bg)]/50 border border-[var(--accent)] rounded px-2 py-1 text-sc-14 text-[var(--text)]"
                     />
                   ) : (
-                    <span className="flex-1 text-sm text-[var(--text)]">{c.name}</span>
+                    <span className="flex-1 text-sc-14 text-[var(--text)]">{c.name}</span>
                   )}
                   <button onClick={() => onReorderCategory(c.id, 'up')} disabled={i === 0} aria-label="Move up" className="text-[var(--muted)] hover:text-[var(--accent)] disabled:opacity-25 disabled:hover:text-[var(--muted)]">
                     <IconArrowUp size={14} />
@@ -179,7 +199,7 @@ export default function SettingsDrawer({
                     <IconArrowDown size={14} />
                   </button>
                   {editingCatId === c.id ? (
-                    <button onClick={() => { onRenameCategory(c.id, editCatName); setEditingCatId(null); }} className="text-[var(--accent)] text-xs font-medium">Save</button>
+                    <button onClick={() => { onRenameCategory(c.id, editCatName); setEditingCatId(null); }} className="text-[var(--accent)] text-sc-12 font-medium">Save</button>
                   ) : (
                     <button onClick={() => { setEditCatName(c.name); setEditingCatId(c.id); }} aria-label="Rename" className="text-[var(--muted)] hover:text-[var(--accent)]">
                       <IconPencil size={14} />
@@ -190,26 +210,26 @@ export default function SettingsDrawer({
               ))}
             </div>
             <div className="flex gap-2 mb-4">
-              <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
-              <button onClick={() => { if (newCat.trim()) { onAddCategory(newCat.trim()); setNewCat(''); } }} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Add</button>
+              <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <button onClick={() => { if (newCat.trim()) { onAddCategory(newCat.trim()); setNewCat(''); } }} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14">Add</button>
             </div>
-            <label className="text-[13px] text-[var(--muted)] block mb-1.5">Monthly pot</label>
+            <label className="text-sc-13 text-[var(--muted)] block mb-1.5">Monthly pot</label>
             <div className="flex gap-2">
-              <input type="number" value={pot} onChange={(e) => setPot(e.target.value)} placeholder="e.g. 40000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
-              <button onClick={() => onSaveMonthlyPot(parseFloat(pot) || 0)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Save</button>
+              <input type="number" value={pot} onChange={(e) => setPot(e.target.value)} placeholder="e.g. 40000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <button onClick={() => onSaveMonthlyPot(parseFloat(pot) || 0)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14">Save</button>
             </div>
           </Section>
 
           <Section title="API and parsing" refProp={apiKeySectionRef}>
-            <label className="text-[13px] text-[var(--muted)] block mb-1.5">Claude API key</label>
+            <label className="text-sc-13 text-[var(--muted)] block mb-1.5">Claude API key</label>
             {!editingKey ? (
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--muted)]">
+                <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--muted)]">
                   {apiKey ? '•'.repeat(24) : 'Not set'}
                 </div>
                 <button
                   onClick={() => { setKey(''); setEditingKey(true); }}
-                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm shrink-0"
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14 shrink-0"
                 >
                   {apiKey ? 'Change' : 'Add'}
                 </button>
@@ -222,44 +242,62 @@ export default function SettingsDrawer({
                   value={key}
                   onChange={(e) => setKey(e.target.value)}
                   placeholder="sk-ant-..."
-                  className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]"
+                  className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]"
                 />
                 <button
                   onClick={() => { onSaveApiKey(key); setEditingKey(false); }}
-                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm shrink-0"
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14 shrink-0"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => { setKey(apiKey); setEditingKey(false); }}
-                  className="text-[var(--muted)] text-sm px-2 shrink-0"
+                  className="text-[var(--muted)] text-sc-14 px-2 shrink-0"
                 >
                   Cancel
                 </button>
               </div>
             )}
-            <p className="text-[12px] text-[var(--muted)] mt-1.5">Used for AI-assisted categorisation on merchants the built-in patterns don&apos;t recognise.</p>
+            <p className="text-sc-12 text-[var(--muted)] mt-1.5">Used for AI-assisted categorisation on merchants the built-in patterns don&apos;t recognise.</p>
+          </Section>
+
+          <Section title="Subscriptions">
+            <p className="text-sc-12 text-[var(--muted)] mb-2">Automatic detection needs Gmail connected. Flag one manually here in the meantime.</p>
+            <div className="flex gap-2">
+              <input value={subMerchant} onChange={(e) => setSubMerchant(e.target.value)} placeholder="Merchant, e.g. Netflix" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <input type="number" value={subAmount} onChange={(e) => setSubAmount(e.target.value)} placeholder="₹/mo" className="w-20 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <button
+                onClick={() => {
+                  if (!subMerchant.trim()) return;
+                  onAddFlaggedSubscription(subMerchant.trim(), parseFloat(subAmount) || 0);
+                  setSubMerchant(''); setSubAmount('');
+                }}
+                className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14 shrink-0"
+              >
+                Flag
+              </button>
+            </div>
           </Section>
 
           <Section title="Recurring templates">
             <div className="flex flex-col gap-1.5 mb-3">
-              {recurringTemplates.length === 0 && <p className="text-[13px] text-[var(--muted)]">None yet — add one below.</p>}
+              {recurringTemplates.length === 0 && <p className="text-sc-13 text-[var(--muted)]">None yet — add one below.</p>}
               {recurringTemplates.map((t) => (
                 <div key={t.id} className="flex justify-between items-center bg-[var(--surface)] border border-[var(--border)]/60 rounded-lg px-2.5 py-2">
                   <div>
-                    <p className="text-sm text-[var(--text)]">{t.name}</p>
-                    <p className="text-[12px] text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
+                    <p className="text-sc-14 text-[var(--text)]">{t.name}</p>
+                    <p className="text-sc-12 text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
                   </div>
-                  <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-sm">×</button>
+                  <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-sc-14">×</button>
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mb-2">
-              <input value={recName} onChange={(e) => setRecName(e.target.value)} placeholder="Name, e.g. Rent" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
-              <input type="number" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="Amount" className="w-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+              <input value={recName} onChange={(e) => setRecName(e.target.value)} placeholder="Name, e.g. Rent" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <input type="number" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="Amount" className="w-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
             </div>
             <div className="flex gap-2 mb-2">
-              <select value={recCadence} onChange={(e) => setRecCadence(e.target.value as 'monthly' | 'weekly')} className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--muted)]">
+              <select value={recCadence} onChange={(e) => setRecCadence(e.target.value as 'monthly' | 'weekly')} className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--muted)]">
                 <option value="monthly">Monthly</option>
                 <option value="weekly">Weekly</option>
               </select>
@@ -269,7 +307,7 @@ export default function SettingsDrawer({
                   onAddRecurringTemplate({ name: recName.trim(), amount: parseFloat(recAmount), category: 'Other', indulgence: false, essential: true, cadence: recCadence });
                   setRecName(''); setRecAmount('');
                 }}
-                className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm"
+                className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14"
               >
                 Add
               </button>
@@ -277,41 +315,21 @@ export default function SettingsDrawer({
           </Section>
 
           <Section title="Notifications">
-            <ToggleRow
-              label="Daily prompt"
-              sublabel="Remind me to log today"
-              checked={dailyPromptEnabled}
-              onChange={(v) => onSaveDailyPrompt(v, dailyPromptHour)}
-            />
-            {dailyPromptEnabled && (
-              <div className="flex justify-between items-center mb-3 pl-0.5">
-                <span className="text-[13px] text-[var(--muted)]">Prompt time</span>
-                <select
-                  value={dailyPromptHour}
-                  onChange={(e) => onSaveDailyPrompt(dailyPromptEnabled, parseInt(e.target.value))}
-                  className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1 text-sm text-[var(--text)]"
-                >
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <option key={h} value={h}>{h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}</option>
-                  ))}
-                </select>
-              </div>
-            )}
             <ToggleRow label="Friday digest" sublabel="Weekly summary" checked={fridayDigestEnabled} onChange={onSaveFridayDigestEnabled} />
             <ToggleRow label="Sunday wrap" sublabel="Weekend reflection" checked={sundayWrapEnabled} onChange={onSaveSundayWrapEnabled} />
-            <p className="text-[12px] text-[var(--muted)] mt-1">
-              These show up in the Reflect and digest section of your dashboard — not as push notifications or emails yet.
+            <p className="text-sc-12 text-[var(--muted)] mt-1">
+              These show up in the Reflect and digest section of your dashboard as in-app alerts only.
             </p>
           </Section>
 
           <Section title="Data and sync">
-            <button onClick={onExportCSV} className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sm mb-2">Export as CSV</button>
-            <p className="text-[12px] text-[var(--muted)]">Your data lives in Supabase and is reachable from any device you sign into — no manual backup needed.</p>
+            <button onClick={onExportCSV} className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sc-14 mb-2">Export as CSV</button>
+            <p className="text-sc-12 text-[var(--muted)]">Your data lives in Supabase and is reachable from any device you sign into — no manual backup needed.</p>
           </Section>
 
           <Section title="Error reporting">
             {feedbackSent ? (
-              <p className="text-sm text-[var(--positive)]">Thanks — that&apos;s been sent.</p>
+              <p className="text-sc-14 text-[var(--positive)]">Thanks — that&apos;s been sent.</p>
             ) : (
               <>
                 <textarea
@@ -319,7 +337,7 @@ export default function SettingsDrawer({
                   onChange={(e) => setFeedbackText(e.target.value)}
                   placeholder="Describe what went wrong..."
                   rows={3}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-2 text-sm text-[var(--text)] mb-2"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-2 text-sc-14 text-[var(--text)] mb-2"
                 />
                 <button
                   onClick={() => {
@@ -329,24 +347,24 @@ export default function SettingsDrawer({
                     setFeedbackSent(true);
                     setTimeout(() => setFeedbackSent(false), 4000);
                   }}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sm mb-2"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sc-14 mb-2"
                 >
                   Send report
                 </button>
-                <p className="text-[12px] text-[var(--muted)]">Reports are tied to your account so we can follow up — never shared or sold.</p>
+                <p className="text-sc-12 text-[var(--muted)]">Reports are tied to your account so we can follow up — never shared or sold.</p>
               </>
             )}
           </Section>
 
           <Section title="Danger zone" danger>
             {!confirmClear ? (
-              <button onClick={() => setConfirmClear(true)} className="w-full border border-[var(--danger)] text-[var(--danger)] rounded-lg py-2 text-sm">Clear all data</button>
+              <button onClick={() => setConfirmClear(true)} className="w-full border border-[var(--danger)] text-[var(--danger)] rounded-lg py-2 text-sc-14">Clear all data</button>
             ) : (
               <div>
-                <p className="text-sm text-[var(--danger)] mb-2">This permanently deletes every transaction. This can&apos;t be undone.</p>
+                <p className="text-sc-14 text-[var(--danger)] mb-2">This permanently deletes every transaction. This can&apos;t be undone.</p>
                 <div className="flex gap-2">
-                  <button onClick={() => { onClearAllData(); setConfirmClear(false); }} className="flex-1 bg-[var(--danger)] text-[var(--text)] rounded-lg py-2 text-sm">Yes, delete everything</button>
-                  <button onClick={() => setConfirmClear(false)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Cancel</button>
+                  <button onClick={() => { onClearAllData(); setConfirmClear(false); }} className="flex-1 bg-[var(--danger)] text-[var(--text)] rounded-lg py-2 text-sc-14">Yes, delete everything</button>
+                  <button onClick={() => setConfirmClear(false)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14">Cancel</button>
                 </div>
               </div>
             )}
@@ -361,19 +379,25 @@ function ToggleRow({ label, sublabel, checked, onChange }: { label: string; subl
   return (
     <div className="flex justify-between items-center mb-3">
       <div>
-        <p className="text-sm text-[var(--text)]">{label}</p>
-        <p className="text-[12px] text-[var(--muted)]">{sublabel}</p>
+        <p className="text-sc-14 text-[var(--text)]">{label}</p>
+        <p className="text-sc-12 text-[var(--muted)]">{sublabel}</p>
       </div>
       <button
         onClick={() => onChange(!checked)}
         aria-label={label}
+        aria-pressed={checked}
         className="relative w-11 h-6 rounded-full transition-colors shrink-0"
-        style={{ background: checked ? 'var(--accent)' : 'var(--surface)' }}
+        style={{
+          background: checked ? 'var(--accent)' : 'transparent',
+          border: checked ? 'none' : '1.5px solid var(--muted)',
+        }}
       >
         <span
-          className="absolute top-0.5 w-5 h-5 rounded-full bg-[var(--bg)] transition-transform"
-          style={{ transform: checked ? 'translateX(22px)' : 'translateX(2px)' }}
-        />
+          className="absolute top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-transform"
+          style={{ background: checked ? 'var(--bg)' : 'var(--muted)', transform: checked ? 'translateX(21px)' : 'translateX(1px)' }}
+        >
+          {checked && <IconCheck size={12} style={{ color: 'var(--accent)' }} />}
+        </span>
       </button>
     </div>
   );
@@ -388,22 +412,22 @@ function TierRow({
     <div className="mb-3 last:mb-0">
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-sm font-medium text-[var(--text)]">{name}</p>
-          <p className="text-[12px] text-[var(--muted)]">{tagline}</p>
+          <p className="text-sc-14 font-medium text-[var(--text)]">{name}</p>
+          <p className="text-sc-12 text-[var(--muted)]">{tagline}</p>
         </div>
         {active ? (
-          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--positive)' }}>Active</span>
+          <span className="text-sc-11 font-semibold uppercase tracking-wide" style={{ color: 'var(--positive)' }}>Active</span>
         ) : (
           <button
             onClick={onInactiveClick}
-            className="text-[11px] uppercase tracking-wide text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+            className="text-sc-11 uppercase tracking-wide text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
             disabled={!onInactiveClick}
           >
             Not active
           </button>
         )}
       </div>
-      {!active && inactiveHint && <p className="text-[11px] text-[var(--muted)] mt-1">{inactiveHint}</p>}
+      {!active && inactiveHint && <p className="text-sc-11 text-[var(--muted)] mt-1">{inactiveHint}</p>}
     </div>
   );
 }
@@ -411,7 +435,7 @@ function TierRow({
 function Section({ title, children, danger, refProp }: { title: string; children: React.ReactNode; danger?: boolean; refProp?: React.RefObject<HTMLDivElement | null> }) {
   return (
     <div className="mb-6" ref={refProp}>
-      <h3 className={`text-[13px] uppercase tracking-wide mb-2.5 ${danger ? 'text-[var(--danger)]' : 'text-[var(--muted)]'}`}>{title}</h3>
+      <h3 className={`text-sc-13 uppercase tracking-wide mb-2.5 ${danger ? 'text-[var(--danger)]' : 'text-[var(--muted)]'}`}>{title}</h3>
       {children}
     </div>
   );

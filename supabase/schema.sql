@@ -51,6 +51,7 @@ create table if not exists settings (
   sunday_wrap_enabled boolean not null default true,
   daily_prompt_hour int default 21,
   friday_digest_hour int default 18,
+  text_size text not null default 'default', -- compact | default | large
   updated_at timestamptz not null default now()
 );
 
@@ -139,6 +140,20 @@ create table if not exists feedback (
   created_at timestamptz not null default now()
 );
 
+-- Genuinely shared across ALL users, unlike every other table here — this is
+-- deliberate: one person correcting "XYZCorp = Rent & utilities" should help
+-- everyone who later sees a transaction from XYZCorp, not just that person.
+-- merchant_key is normalized (lowercase, trimmed) so lookups are consistent.
+-- confidence increments each time a different categorization reinforces the
+-- same mapping, giving repeated agreement more weight than a single guess.
+create table if not exists global_merchant_patterns (
+  merchant_key text primary key,
+  category text not null,
+  indulgence boolean not null default false,
+  confidence int not null default 1,
+  updated_at timestamptz not null default now()
+);
+
 -- Row Level Security: every table only ever shows the logged-in user's own rows
 alter table transactions enable row level security;
 alter table categories enable row level security;
@@ -152,6 +167,7 @@ alter table goals enable row level security;
 alter table goal_contributions enable row level security;
 alter table digests enable row level security;
 alter table feedback enable row level security;
+alter table global_merchant_patterns enable row level security;
 
 create policy "own rows only" on transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on categories for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -165,6 +181,13 @@ create policy "own rows only" on goals for all using (auth.uid() = user_id) with
 create policy "own rows only" on goal_contributions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on digests for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on feedback for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Different shape from every other policy here on purpose: any signed-in
+-- user can read AND write, since the whole point is shared knowledge. No
+-- moderation layer exists yet — a known, accepted limitation for now.
+create policy "shared read" on global_merchant_patterns for select using (auth.role() = 'authenticated');
+create policy "shared write" on global_merchant_patterns for insert with check (auth.role() = 'authenticated');
+create policy "shared update" on global_merchant_patterns for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- Seed default categories for a brand new user (call this once after first login,
 -- or run manually with your own user_id after signing in the first time)
@@ -247,3 +270,15 @@ create policy "own rows only" on feedback for all using (auth.uid() = user_id) w
 -- alter table settings add column if not exists daily_prompt_enabled boolean not null default true;
 -- alter table settings add column if not exists friday_digest_enabled boolean not null default true;
 -- alter table settings add column if not exists sunday_wrap_enabled boolean not null default true;
+
+-- Migration if you already ran schema.sql before global_merchant_patterns or text_size existed:
+-- create table global_merchant_patterns (
+--   merchant_key text primary key, category text not null,
+--   indulgence boolean not null default false, confidence int not null default 1,
+--   updated_at timestamptz not null default now()
+-- );
+-- alter table global_merchant_patterns enable row level security;
+-- create policy "shared read" on global_merchant_patterns for select using (auth.role() = 'authenticated');
+-- create policy "shared write" on global_merchant_patterns for insert with check (auth.role() = 'authenticated');
+-- create policy "shared update" on global_merchant_patterns for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+-- alter table settings add column if not exists text_size text not null default 'default';
