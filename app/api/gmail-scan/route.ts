@@ -1,9 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { parseQuickAdd } from '@/lib/parse';
+import { extractAmountStrict, extractMerchantDescription } from '@/lib/parse';
 
 const SEARCH_QUERY =
-  '(receipt OR invoice OR "order confirmed" OR "payment successful" OR "your order" OR subscription) newer_than:30d';
+  '(receipt OR invoice OR "order confirmed" OR "payment successful" OR "spent on your" OR "debited") ' +
+  '-cashback -refund -unsubscribe -newsletter -"opt-out" -nominee -offer -free newer_than:30d';
+
+// Subjects/snippets containing these almost never represent an actual spend —
+// promotions, credits, and account notices that happen to contain a number.
+const NOISE_KEYWORDS = [
+  'cashback', 'refund', 'reward', 'unsubscribe', 'newsletter', 'delivered',
+  'opt-out', 'nominee', 'folio', 'free', 'discount', 'offer', 'sale',
+  'credited', 'winner', 'congratulations',
+];
+
+function looksLikeNoise(text: string): boolean {
+  const lower = text.toLowerCase();
+  return NOISE_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 export async function POST() {
   const supabase = await createClient();
@@ -75,13 +89,16 @@ export async function POST() {
       const snippet = msgData.snippet || '';
       const combined = `${subjectHeader} ${snippet}`;
 
+      if (looksLikeNoise(combined)) continue;
+
       const date = msgData.internalDate
         ? new Date(parseInt(msgData.internalDate)).toISOString().split('T')[0]
         : undefined;
 
-      const { amount, description } = parseQuickAdd(combined);
-      if (amount && amount > 0) {
-        candidates.push({ amount, description: (subjectHeader || description).slice(0, 80), date: date || new Date().toISOString().split('T')[0] });
+      const amount = extractAmountStrict(combined);
+      if (amount) {
+        const cleaned = extractMerchantDescription(subjectHeader) || subjectHeader.slice(0, 80);
+        candidates.push({ amount, description: cleaned.slice(0, 80), date: date || new Date().toISOString().split('T')[0] });
       }
     }
 

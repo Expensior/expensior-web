@@ -155,6 +155,30 @@ function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: 
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [thisWeek]);
 
+  const monthTxns = allTransactions.filter((t) => {
+    const d = new Date(t.date + 'T12:00:00');
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === 'expense';
+  });
+  const monthSpent = monthTxns.reduce((s, t) => s + t.amount, 0);
+
+  const weeklyTrend = useMemo(() => {
+    const weeks: number[] = [];
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const cursor = new Date(firstOfMonth);
+    while (cursor <= lastOfMonth) {
+      const weekStart = new Date(cursor);
+      const weekEnd = new Date(cursor);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const total = monthTxns
+        .filter((t) => { const d = new Date(t.date + 'T12:00:00'); return d >= weekStart && d <= weekEnd; })
+        .reduce((s, t) => s + t.amount, 0);
+      weeks.push(total);
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return weeks;
+  }, [monthTxns, now]);
+
   return (
     <div className="h-full flex flex-col gap-5">
       {sinceVisit && (
@@ -196,6 +220,15 @@ function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: 
             <span key={cat} className="text-sm text-[var(--muted)] flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: CAT_COLORS[cat] || 'var(--muted)' }} />{cat}
             </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 px-1 shrink-0">
+        <p className="text-xs text-[var(--muted)] whitespace-nowrap">{now.toLocaleDateString('en-IN', { month: 'long' })} so far: {fmt(monthSpent)}</p>
+        <div className="flex items-end gap-1 h-4 flex-1 max-w-[140px]">
+          {weeklyTrend.map((w, i) => (
+            <div key={i} className="flex-1 rounded-sm" style={{ height: `${Math.max(15, (w / (Math.max(...weeklyTrend, 1))) * 100)}%`, background: 'color-mix(in srgb, var(--muted), transparent 40%)' }} />
           ))}
         </div>
       </div>

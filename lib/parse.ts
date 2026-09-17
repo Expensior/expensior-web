@@ -53,6 +53,27 @@ function extractDate(text: string): { date: string | null; remaining: string } {
   return { date: null, remaining: text };
 }
 
+// For low-trust sources (arbitrary email text, not something the person
+// typed as an expense) — requires an explicit currency marker next to the
+// number. No bare-number fallback, since most numbers in an email aren't
+// amounts at all (dates, tracking IDs, "3 months free", "MD5", etc).
+export function extractAmountStrict(text: string): number | null {
+  const patterns = [
+    /(?:₹|rs\.?\s*|inr\s*)([0-9,]+(?:\.[0-9]{1,2})?)/i,
+    /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:₹|rs\.?|inr)/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      const amount = parseFloat(m[1].replace(/,/g, ''));
+      // Sanity bound — a personal expense in the tens of lakhs is almost
+      // certainly a mis-parsed tracking number, phone number, or account ID.
+      if (amount > 0 && amount <= 200000) return amount;
+    }
+  }
+  return null;
+}
+
 export function parseQuickAdd(text: string): { amount: number | null; description: string; date: string } {
   const raw = text.trim();
   const { date, remaining: afterDate } = extractDate(raw);
@@ -98,7 +119,8 @@ export function parseBulkText(text: string): BulkCandidate[] {
   for (const block of blocks) {
     const { amount, description, date } = parseQuickAdd(block);
     if (amount && amount > 0) {
-      candidates.push({ amount, description: description.slice(0, 80) || 'Transaction', date });
+      const cleaned = extractMerchantDescription(description) || description;
+      candidates.push({ amount, description: cleaned.slice(0, 80) || 'Transaction', date });
     }
   }
   return candidates;
@@ -206,6 +228,46 @@ export function candidatesFromCsv(csv: CsvParseResult, map: CsvColumnMap, trustA
     });
   }
   return candidates;
+}
+
+export function extractMerchantDescription(raw: string): string {
+  const text = raw.trim();
+
+  function stripTrailingPreposition(s: string): string {
+    return s.replace(/\s+(on|at|to|for)\s*$/i, '').trim();
+  }
+
+  function titleCaseIfShouting(s: string): string {
+    const cleaned = stripTrailingPreposition(s.replace(/[.,]+$/, ''));
+    if (cleaned === cleaned.toUpperCase() && /[A-Z]/.test(cleaned)) {
+      return cleaned.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    return cleaned;
+  }
+
+  // Bank/UPI alerts put the merchant right before a date or the end of the
+  // sentence — "...at MERCHANT on 14-Sep-26", "...to MERCHANT.", etc. If the
+  // date was already stripped upstream (e.g. by parseQuickAdd), only a bare
+  // trailing "on" remains — stripTrailingPreposition cleans that up too.
+  // Take the LAST match of each preposition, since the merchant is usually
+  // near the end (an earlier "at"/"to" might just be part of boilerplate).
+  const prepositions = ['at', 'to', 'towards'];
+  for (const prep of prepositions) {
+    const re = new RegExp(`\\b${prep}\\s+([A-Za-z0-9][A-Za-z0-9&.,'\\-\\s]{1,40}?)(?=\\s+on\\s+\\d|\\s+on\\s+[A-Za-z]{3}|[.,]|$)`, 'gi');
+    const matches = [...text.matchAll(re)];
+    if (matches.length > 0) {
+      const merchant = matches[matches.length - 1][1];
+      if (merchant.trim().length > 1) return titleCaseIfShouting(merchant);
+    }
+  }
+
+  // Bill payments / services: "...for Credit Card Bill Payment"
+  const forMatch = text.match(/\bfor\s+([A-Za-z][A-Za-z\s]{2,40}?)(?:[.,]|$)/i);
+  if (forMatch) return titleCaseIfShouting(forMatch[1]);
+
+  // No recognizable pattern — return the raw text with dangling trailing
+  // prepositions cleaned up (leftover from stripped amount/date fragments).
+  return stripTrailingPreposition(text);
 }
 
 export function todayStr(): string {

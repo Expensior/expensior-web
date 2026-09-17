@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { IconX, IconCheck } from '@tabler/icons-react';
+import { IconX, IconCheck, IconChevronDown } from '@tabler/icons-react';
 import { THEMES } from '@/lib/themes';
 import type { RecurringTemplate } from '@/lib/types';
 
@@ -43,10 +43,14 @@ export default function SettingsDrawer({
   const [newCat, setNewCat] = useState('');
   const [pot, setPot] = useState(monthlyPot?.toString() || '');
   const [key, setKey] = useState(apiKey);
+  const [editingKey, setEditingKey] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [recName, setRecName] = useState('');
   const [recAmount, setRecAmount] = useState('');
   const [recCadence, setRecCadence] = useState<'monthly' | 'weekly'>('monthly');
+
+  const currentTheme = THEMES.find((t) => t.id === theme);
 
   return (
     <>
@@ -61,27 +65,42 @@ export default function SettingsDrawer({
 
         <div className="p-4">
           <Section title="Appearance">
-            <div className="flex flex-col gap-2">
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => onSaveTheme(t.id)}
-                  className="flex items-center gap-3 border rounded-lg px-3 py-2.5 text-left transition-colors"
-                  style={{
-                    borderColor: theme === t.id ? 'var(--accent)' : 'var(--border)',
-                    background: theme === t.id ? 'color-mix(in srgb, var(--accent), transparent 85%)' : 'transparent',
-                  }}
-                >
-                  <div className="flex gap-1 shrink-0">
-                    {t.swatches.map((c, i) => (
-                      <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
-                    ))}
-                  </div>
-                  <span className="text-xs text-[var(--text)] flex-1">{t.name}</span>
-                  {theme === t.id && <IconCheck size={16} className="text-[var(--accent)] shrink-0" />}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setAppearanceOpen((v) => !v)}
+              className="w-full flex items-center gap-3 border rounded-lg px-3 py-2.5 text-left transition-colors"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <div className="flex gap-1 shrink-0">
+                {(currentTheme || THEMES[0]).swatches.map((c, i) => (
+                  <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
+                ))}
+              </div>
+              <span className="text-xs text-[var(--text)] flex-1">{(currentTheme || THEMES[0]).name}</span>
+              <IconChevronDown size={16} className="text-[var(--muted)] transition-transform" style={{ transform: appearanceOpen ? 'rotate(180deg)' : 'none' }} />
+            </button>
+            {appearanceOpen && (
+              <div className="flex flex-col gap-2 mt-2">
+                {THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { onSaveTheme(t.id); setAppearanceOpen(false); }}
+                    className="flex items-center gap-3 border rounded-lg px-3 py-2.5 text-left transition-colors"
+                    style={{
+                      borderColor: theme === t.id ? 'var(--accent)' : 'var(--border)',
+                      background: theme === t.id ? 'color-mix(in srgb, var(--accent), transparent 85%)' : 'transparent',
+                    }}
+                  >
+                    <div className="flex gap-1 shrink-0">
+                      {t.swatches.map((c, i) => (
+                        <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-[var(--text)] flex-1">{t.name}</span>
+                    {theme === t.id && <IconCheck size={16} className="text-[var(--accent)] shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </Section>
 
           <Section title="Categories & budget">
@@ -106,10 +125,42 @@ export default function SettingsDrawer({
 
           <Section title="API and parsing">
             <label className="text-[11px] text-[var(--muted)] block mb-1.5">Claude API key</label>
-            <div className="flex gap-2">
-              <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-..." className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-              <button onClick={() => onSaveApiKey(key)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs">Save</button>
-            </div>
+            {!editingKey ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--muted)]">
+                  {apiKey ? '•'.repeat(24) : 'Not set'}
+                </div>
+                <button
+                  onClick={() => { setKey(''); setEditingKey(true); }}
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs shrink-0"
+                >
+                  {apiKey ? 'Change' : 'Add'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  type="password"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]"
+                />
+                <button
+                  onClick={() => { onSaveApiKey(key); setEditingKey(false); }}
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs shrink-0"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => { setKey(apiKey); setEditingKey(false); }}
+                  className="text-[var(--muted)] text-xs px-2 shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
             <p className="text-[10px] text-[var(--muted)] mt-1.5">Used for AI-assisted categorisation on merchants the built-in patterns don&apos;t recognise.</p>
           </Section>
 
