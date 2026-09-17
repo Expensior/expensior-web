@@ -501,11 +501,15 @@ export default function App() {
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0" style={{ width: '30%' }}>
           <Ledger
+            month={month}
             monthLabel={month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
             onPrevMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
             onNextMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+            onJumpMonths={(delta) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))}
             onToday={() => { const d = new Date(); d.setDate(1); setMonth(d); }}
             transactions={monthTransactions}
+            allTransactions={transactions}
+            monthlyPot={monthlyPot}
             categories={categories}
             filter={filter}
             setFilter={setFilter}
