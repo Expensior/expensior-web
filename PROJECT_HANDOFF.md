@@ -192,6 +192,34 @@ related is broken.**
   sure.
 - Landscape mobile orientation was explicitly NOT addressed — only portrait
   was requested this round.
+- **Mobile scroll-passthrough bug (found and fixed)**: touching the Ledger
+  drawer's static header content (donut, highlights, search, sparkline) did
+  nothing, while touching the transaction list scrolled normally — because
+  only the transaction list has `overflow-auto`; everything above it is
+  static, non-scrolling content. A touch-scroll gesture starting over content
+  with nothing to scroll can fall through to whatever's behind it in the
+  visual stack (the Dashboard), since a `position: fixed` element doesn't
+  block scroll-chaining by default. Fixed by adding `overscroll-contain`
+  (`overscroll-behavior: contain`) to the drawer's outer wrapper. Not yet
+  confirmed live.
+- **Sticky day-header horizontal gap — ACTUAL root cause found, much simpler
+  than first assumed.** The user's precise description ("the background
+  doesn't go all the way to the left and right, a bit of underlying text is
+  still visible when scrolled") pointed to something different from a
+  scroll-timing issue: the transaction rows use a "bleed" trick
+  (`-mx-1.5 px-2`) so their colored background extends slightly wider than
+  their logical box position. The sticky header had NO matching bleed at all
+  on the regular (non-"today") variant, and a *different, mismatched* bleed
+  amount on the "today" variant (`marginLeft/Right: -8` vs the rows'
+  `-mx-1.5` = -6px). Since the header's background was narrower than the
+  rows sitting behind it, a row's wider background could peek out past the
+  header's edges on both sides during scroll. Fixed by giving the header the
+  *exact same* `-mx-1.5 px-2` as the rows, applied uniformly to both header
+  variants. **This replaces my earlier, incorrect diagnosis** (that this was
+  an inherent per-group `position: sticky` timing limitation needing a
+  JS/IntersectionObserver rewrite) — that diagnosis was wrong; this was a
+  plain CSS width mismatch the whole time. Not yet confirmed live, but this
+  fix is far more targeted and likely correct than the previous one.
 - **AI-assisted categorization + collective knowledge** (this session): local
   keyword hints → shared `global_merchant_patterns` lookup → Claude API call
   (only if user has a key set) → result written back to the shared table.
