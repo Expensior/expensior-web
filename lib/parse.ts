@@ -34,16 +34,19 @@ function extractDate(text: string): { date: string | null; remaining: string } {
     }
   }
 
-  // "7 sept" / "7 september" / "sept 7"
+  // "7 sept" / "7 september" / "sept 7" / "7-Sep-2026" / "7/Sep/2026"
   const monthNames = Object.keys(MONTHS).join('|');
-  const dayMonth = text.match(new RegExp(`\\b(\\d{1,2})\\s+(${monthNames})\\b`, 'i'));
-  const monthDay = text.match(new RegExp(`\\b(${monthNames})\\s+(\\d{1,2})\\b`, 'i'));
+  const sep = '[\\s\\-\\/,]+';
+  const dayMonth = text.match(new RegExp(`\\b(\\d{1,2})${sep}(${monthNames})(?:${sep}(\\d{2,4}))?\\b`, 'i'));
+  const monthDay = text.match(new RegExp(`\\b(${monthNames})${sep}(\\d{1,2})(?:${sep}(\\d{2,4}))?\\b`, 'i'));
   const match = dayMonth || monthDay;
   if (match) {
     const day = parseInt(dayMonth ? match[1] : match[2]);
     const monthKey = (dayMonth ? match[2] : match[1]).toLowerCase();
+    const yearMatch = match[3];
+    const year = yearMatch ? (yearMatch.length === 2 ? 2000 + parseInt(yearMatch) : parseInt(yearMatch)) : new Date().getFullYear();
     const month = MONTHS[monthKey];
-    const d = new Date(new Date().getFullYear(), month, day);
+    const d = new Date(year, month, day);
     return { date: ymd(d), remaining: text.replace(match[0], '').trim() };
   }
 
@@ -77,6 +80,132 @@ export function parseQuickAdd(text: string): { amount: number | null; descriptio
 
 export function fmt(n: number): string {
   return '₹' + Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+export interface BulkCandidate {
+  amount: number;
+  description: string;
+  date: string;
+}
+
+export function parseBulkText(text: string): BulkCandidate[] {
+  let blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  if (blocks.length <= 1) {
+    blocks = text.split('\n').map((b) => b.trim()).filter(Boolean);
+  }
+
+  const candidates: BulkCandidate[] = [];
+  for (const block of blocks) {
+    const { amount, description, date } = parseQuickAdd(block);
+    if (amount && amount > 0) {
+      candidates.push({ amount, description: description.slice(0, 80) || 'Transaction', date });
+    }
+  }
+  return candidates;
+}
+
+export function parseFlexibleDate(raw: string): string {
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const { date } = extractDate(trimmed);
+  if (date) return date;
+
+  return todayStr();
+}
+
+export interface CsvParseResult {
+  headers: string[];
+  rows: string[][];
+}
+
+export function parseCsv(text: string): CsvParseResult {
+  const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
+  const parseLine = (line: string): string[] => {
+    const cells: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        cells.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells.map((c) => c.trim());
+  };
+
+  const [headerLine, ...rest] = lines;
+  return { headers: headerLine ? parseLine(headerLine) : [], rows: rest.map(parseLine) };
+}
+
+function findColumn(headers: string[], keywords: string[]): number {
+  const lower = headers.map((h) => h.toLowerCase());
+  for (const kw of keywords) {
+    const idx = lower.findIndex((h) => h.includes(kw));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+export interface CsvColumnMap {
+  dateCol: number;
+  descCol: number;
+  amountCol: number; // single signed amount, or debit column
+  creditCol?: number; // if separate credit column exists (skipped as income)
+  isDedicatedDebitColumn?: boolean; // true if matched via "debit"/"withdrawal" — values are always positive spends, no sign to check
+}
+
+export function autoDetectCsvColumns(headers: string[]): CsvColumnMap | null {
+  const dateCol = findColumn(headers, ['date']);
+  const descCol = findColumn(headers, ['narration', 'description', 'particulars', 'details', 'remarks']);
+  const debitCol = findColumn(headers, ['debit', 'withdrawal']);
+  const creditCol = findColumn(headers, ['credit', 'deposit']);
+  const amountCol = findColumn(headers, ['amount', 'amt']);
+
+  if (dateCol === -1 || descCol === -1) return null;
+  if (debitCol !== -1) return { dateCol, descCol, amountCol: debitCol, creditCol: creditCol !== -1 ? creditCol : undefined, isDedicatedDebitColumn: true };
+  if (amountCol !== -1) return { dateCol, descCol, amountCol };
+  return null;
+}
+
+export function candidatesFromCsv(csv: CsvParseResult, map: CsvColumnMap, trustAllRows = false): BulkCandidate[] {
+  const candidates: BulkCandidate[] = [];
+  for (const row of csv.rows) {
+    const dateRaw = row[map.dateCol];
+    const descRaw = row[map.descCol];
+    const amountRaw = row[map.amountCol];
+    if (!amountRaw) continue;
+
+    const cleaned = amountRaw.replace(/[₹,\s]/g, '');
+    const num = parseFloat(cleaned);
+    if (!num || isNaN(num)) continue;
+
+    // A dedicated debit column, or manual confirmation, means every value here is a spend
+    // (debit columns are conventionally positive — there's no sign to check).
+    // Otherwise (a generic signed "amount" column): negative = spend, positive = skip (assumed income).
+    let finalAmount: number | null = null;
+    if (trustAllRows || map.isDedicatedDebitColumn) {
+      finalAmount = Math.abs(num);
+    } else if (num < 0) {
+      finalAmount = Math.abs(num);
+    } else {
+      continue;
+    }
+
+    if (!finalAmount) continue;
+    candidates.push({
+      amount: finalAmount,
+      description: (descRaw || 'Transaction').slice(0, 80),
+      date: parseFlexibleDate(dateRaw || ''),
+    });
+  }
+  return candidates;
 }
 
 export function todayStr(): string {

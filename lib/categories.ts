@@ -4,16 +4,16 @@ export const DEFAULT_CATEGORIES = [
 ];
 
 export const CAT_COLORS: Record<string, string> = {
-  'Food & dining': '#B56576',
-  'Groceries': '#355070',
-  'Entertainment': '#E56B6F',
-  'Travel': '#6D597A',
-  'Shopping': '#EAAC8B',
-  'Health & fitness': '#B56576',
-  'Rent & utilities': '#355070',
-  'Subscriptions': '#E56B6F',
-  'Transport': '#6D597A',
-  'Other': '#EAAC8B',
+  'Food & dining': 'var(--cat-1)',
+  'Groceries': 'var(--cat-2)',
+  'Entertainment': 'var(--cat-3)',
+  'Travel': 'var(--cat-4)',
+  'Shopping': 'var(--cat-5)',
+  'Health & fitness': 'var(--cat-1)',
+  'Rent & utilities': 'var(--cat-2)',
+  'Subscriptions': 'var(--cat-3)',
+  'Transport': 'var(--cat-4)',
+  'Other': 'var(--cat-5)',
 };
 
 // Deduped — each merchant maps to exactly one entry. Merchants that

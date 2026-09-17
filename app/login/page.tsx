@@ -39,33 +39,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1D2C3E] px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-medium text-[#FAF7F2]">Expensior!</h1>
-          <p className="text-sm text-[#BDB4C3] mt-1">Track expenses, savings and indulgence</p>
+          <h1 className="text-2xl font-medium text-[var(--text)]">Expensior!</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">Track expenses, savings and indulgence</p>
         </div>
 
         {sent ? (
-          <div className="bg-[#355070] border border-[#6D597A] rounded-xl p-5 text-center">
-            <p className="text-sm text-[#FAF7F2]">Check your email</p>
-            <p className="text-xs text-[#BDB4C3] mt-2">
-              We sent a sign-in link to <span className="text-[#FAF7F2]">{email}</span>
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 text-center">
+            <p className="text-sm text-[var(--text)]">Check your email</p>
+            <p className="text-xs text-[var(--muted)] mt-2">
+              We sent a sign-in link to <span className="text-[var(--text)]">{email}</span>
             </p>
           </div>
         ) : (
           <>
             <button
               onClick={signInWithGoogle}
-              className="w-full bg-[#355070] border border-[#6D597A] text-[#FAF7F2] rounded-lg py-2.5 text-sm font-medium mb-4 hover:border-[#B56576] transition-colors"
+              className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2.5 text-sm font-medium mb-4 hover:border-[var(--accent)] transition-colors"
             >
               Continue with Google
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px bg-[#6D597A]" />
-              <span className="text-xs text-[#BDB4C3]">or</span>
-              <div className="flex-1 h-px bg-[#6D597A]" />
+              <div className="flex-1 h-px bg-[var(--border)]" />
+              <span className="text-xs text-[var(--muted)]">or</span>
+              <div className="flex-1 h-px bg-[var(--border)]" />
             </div>
 
             <form onSubmit={sendMagicLink}>
@@ -74,13 +74,13 @@ export default function LoginPage() {
                 placeholder="name@email.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                className="w-full bg-[#355070] border border-[#6D597A] rounded-lg px-3 py-2.5 text-sm text-[#FAF7F2] placeholder:text-[#BDB4C3] focus:outline-none focus:border-[#B56576] mb-2"
+                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] mb-2"
               />
-              {error && <p className="text-xs text-[#E56B6F] mb-2">{error}</p>}
+              {error && <p className="text-xs text-[var(--danger)] mb-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#B56576] text-[#1D2C3E] rounded-lg py-2.5 text-sm font-medium disabled:opacity-60"
+                className="w-full bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2.5 text-sm font-medium disabled:opacity-60"
               >
                 {loading ? 'Sending link…' : 'Send magic link'}
               </button>

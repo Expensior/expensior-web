@@ -1,7 +1,227 @@
 @import "tailwindcss";
 
+:root {
+  --bg: #1D2C3E;
+  --surface: #355070;
+  --border: #6D597A;
+  --accent: #B56576;
+  --danger: #E56B6F;
+  --positive: #EAAC8B;
+  --text: #FAF7F2;
+  --muted: #BDB4C3;
+  --cat-1: #B56576;
+  --cat-2: #E56B6F;
+  --cat-3: #EAAC8B;
+  --cat-4: #6D597A;
+  --cat-5: #FAF7F2;
+}
+
+/* Winter solstice — light, cool. Border derived from accent; muted text
+   derived as the midpoint between text and background (none of the five
+   given colors reads well as a neutral secondary-text tone). Category
+   colors avoid Ice Blue since it equals --surface (would make that
+   category's dot invisible against the ledger card). */
+[data-theme="winter-solstice"] {
+  --bg: #E0FBFC;
+  --surface: #98C1D9;
+  --border: #3D5A80;
+  --accent: #3D5A80;
+  --danger: #9B2226;
+  --positive: #293241;
+  --text: #293241;
+  --muted: #84979E;
+  --cat-1: #3D5A80;
+  --cat-2: #9B2226;
+  --cat-3: #293241;
+  --cat-4: #E0FBFC;
+  --cat-5: color-mix(in srgb, #3D5A80, white 30%);
+}
+
+/* Autumn harvest — this palette's lightest color (Mustard Gold) is only
+   medium-light, so the set reads as a warm dark theme rather than light.
+   Text and muted-text are derived warm creams — none of the five given
+   colors is light enough to use directly as body text on this background.
+   Category colors avoid Olive Branch since it equals --surface. */
+[data-theme="autumn-harvest"] {
+  --bg: #283618;
+  --surface: #606C38;
+  --border: #C15C3D;
+  --accent: #C15C3D;
+  --danger: #E28743;
+  --positive: #D4A373;
+  --text: #F3E6D3;
+  --muted: #B9AE8F;
+  --cat-1: #C15C3D;
+  --cat-2: #E28743;
+  --cat-3: #D4A373;
+  --cat-4: #F3E6D3;
+  --cat-5: color-mix(in srgb, #C15C3D, black 25%);
+}
+
+/* Spring awakening — the softest of the four; none of its five colors is
+   dark enough for readable text, so text and muted-text are derived dark
+   neutrals rather than one of the named colors. Category colors avoid
+   Blossom Pink since it equals --surface. */
+[data-theme="spring-awakening"] {
+  --bg: #F7F4EA;
+  --surface: #FFCAD4;
+  --border: #98D8C8;
+  --accent: #B58A8A;
+  --danger: #FFCAD4;
+  --positive: #A3B19B;
+  --text: #3F3030;
+  --muted: #9B928D;
+  --cat-1: #B58A8A;
+  --cat-2: #98D8C8;
+  --cat-3: #A3B19B;
+  --cat-4: #3F3030;
+  --cat-5: color-mix(in srgb, #B58A8A, white 25%);
+}
+
+/* Midsummer radiance — dark, energetic. Only Midnight Navy is genuinely
+   dark, so --surface is a derived lighter tint of it rather than a sixth
+   named color. Papaya Whip (the lightest of the five) doubles as body
+   text since nothing else in the set reads well as text on a dark bg. */
+[data-theme="midsummer-radiance"] {
+  --bg: #073B4C;
+  --surface: color-mix(in srgb, #073B4C, white 12%);
+  --border: #FF6B6B;
+  --accent: #FFD166;
+  --danger: #FF6B6B;
+  --positive: #06D6A0;
+  --text: #FFADAD;
+  --muted: color-mix(in srgb, #FFADAD, #073B4C 55%);
+  --cat-1: #FFD166;
+  --cat-2: #FF6B6B;
+  --cat-3: #06D6A0;
+  --cat-4: #FFADAD;
+  --cat-5: color-mix(in srgb, #FFD166, #06D6A0 50%);
+}
+
+/* Monsoon and earth — dark, muted. No color in this set reads as an
+   alarm/danger red, so Rich Clay (the warmest of the five) carries that
+   role by necessity. Text is Warm Sand lightened — the raw color alone
+   is too close in contrast to the background for reliable body text. */
+[data-theme="monsoon-earth"] {
+  --bg: #38220F;
+  --surface: #4A5D4E;
+  --border: #B07D62;
+  --accent: #DDB892;
+  --danger: #B07D62;
+  --positive: #7F8C8D;
+  --text: color-mix(in srgb, #DDB892, white 35%);
+  --muted: color-mix(in srgb, var(--text), var(--bg) 55%);
+  --cat-1: #DDB892;
+  --cat-2: #B07D62;
+  --cat-3: #7F8C8D;
+  --cat-4: var(--text);
+  --cat-5: color-mix(in srgb, #DDB892, black 20%);
+}
+
+/* Cosmic aurora — dark. This set is entirely cool (purple, cyan, teal,
+   silver) with no warm color at all, so --danger is one supplemental red
+   added outside the five given colors — the only way to give "regret"
+   its own distinct hue rather than reusing the accent cyan. */
+[data-theme="cosmic-aurora"] {
+  --bg: #0B0C10;
+  --surface: #1F2833;
+  --border: color-mix(in srgb, #1F2833, white 15%);
+  --accent: #66FCF1;
+  --danger: #E85A6B;
+  --positive: #45A29E;
+  --text: #C5C6C7;
+  --muted: color-mix(in srgb, #C5C6C7, #0B0C10 45%);
+  --cat-1: #66FCF1;
+  --cat-2: #45A29E;
+  --cat-3: #E85A6B;
+  --cat-4: #C5C6C7;
+  --cat-5: color-mix(in srgb, #66FCF1, #45A29E 50%);
+}
+
+/* Smoked obsidian — dark. Every given color is a shade of amber/brown,
+   so --danger is one supplemental warm red added outside the five —
+   without it, "regret" and "primary action" would be indistinguishable. */
+[data-theme="smoked-obsidian"] {
+  --bg: #121212;
+  --surface: #2D1E1E;
+  --border: color-mix(in srgb, #2D1E1E, white 15%);
+  --accent: #FF9F1C;
+  --danger: #D64545;
+  --positive: #FFBF69;
+  --text: #F6F6F6;
+  --muted: color-mix(in srgb, #F6F6F6, #121212 45%);
+  --cat-1: #FF9F1C;
+  --cat-2: #FFBF69;
+  --cat-3: #D64545;
+  --cat-4: #F6F6F6;
+  --cat-5: color-mix(in srgb, #FF9F1C, black 20%);
+}
+
+/* Coastal breeze — light. No color in this set is red-leaning, so
+   --danger is one supplemental warm coral added outside the five. */
+[data-theme="coastal-breeze"] {
+  --bg: #e7f6ff;
+  --surface: #9ad9ea;
+  --border: #2f9bb3;
+  --accent: #2f9bb3;
+  --danger: #E2574C;
+  --positive: #f4e6cc;
+  --text: #1f3a5f;
+  --muted: color-mix(in srgb, #1f3a5f, #e7f6ff 55%);
+  --cat-1: #2f9bb3;
+  --cat-2: #f4e6cc;
+  --cat-3: #E2574C;
+  --cat-4: #1f3a5f;
+  --cat-5: color-mix(in srgb, #2f9bb3, white 25%);
+}
+
+/* Citrus splash — light. No color in this set is red-leaning, so
+   --danger is one supplemental red added outside the five. */
+[data-theme="citrus-splash"] {
+  --bg: #fff1b8;
+  --surface: #ffd166;
+  --border: #ff8c42;
+  --accent: #ff8c42;
+  --danger: #E14D4D;
+  --positive: #2ec4b6;
+  --text: #0b1320;
+  --muted: color-mix(in srgb, #0b1320, #fff1b8 55%);
+  --cat-1: #ff8c42;
+  --cat-2: #2ec4b6;
+  --cat-3: #E14D4D;
+  --cat-4: #0b1320;
+  --cat-5: color-mix(in srgb, #ff8c42, #2ec4b6 50%);
+}
+
+/* Watermelon sorbet — light. Unlike most of the others, this palette
+   already contains a genuinely red-leaning color (Vibrant Red-Pink), so
+   it does double duty as both the primary accent and danger rather than
+   needing a supplemental color. */
+[data-theme="watermelon-sorbet"] {
+  --bg: #ffe5ec;
+  --surface: #ff8fab;
+  --border: #ff4d6d;
+  --accent: #ff4d6d;
+  --danger: #ff4d6d;
+  --positive: #2fdc7a;
+  --text: #1f2937;
+  --muted: color-mix(in srgb, #1f2937, #ffe5ec 55%);
+  --cat-1: #ff4d6d;
+  --cat-2: #2fdc7a;
+  --cat-3: #1f2937;
+  --cat-4: #ffe5ec;
+  --cat-5: color-mix(in srgb, #ff4d6d, #2fdc7a 50%);
+}
+
 body {
-  background: #1D2C3E;
-  color: #FAF7F2;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--bg), white 8%) 0%, var(--bg) 55%);
+  background-attachment: fixed;
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }

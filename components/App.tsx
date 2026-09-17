@@ -4,11 +4,39 @@ import { useEffect, useState, useCallback } from 'react';
 import { IconSettings } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
-import type { NewTransaction, Transaction } from '@/lib/types';
-import EntryZone from './EntryZone';
+import { DEFAULT_THEME } from '@/lib/themes';
+import { computeFridayDigest, computeSundayDigest, mostRecentPastWeekday } from '@/lib/digest';
+import type { Intention } from '@/lib/selfKnowledge';
+import type { NewTransaction, Transaction, RecurringTemplate, Goal, GoalContribution, Digest } from '@/lib/types';
+import EditTransactionModal from './EntryZone';
+import EntryFab from './EntryFab';
 import Ledger, { emptyFilter, type LedgerFilter } from './Ledger';
 import Dashboard from './Dashboard';
 import SettingsDrawer from './SettingsDrawer';
+
+async function generateMissingDigests(userId: string, existing: Digest[], transactions: Transaction[]) {
+  const supabase = createClient();
+  const now = new Date();
+  const fridayCutoff = mostRecentPastWeekday(now, 5, 18);
+  const sundayCutoff = mostRecentPastWeekday(now, 0, 18);
+
+  const hasFriday = existing.some((d) => d.kind === 'friday' && d.period_end === fridayCutoff.toISOString());
+  const hasSunday = existing.some((d) => d.kind === 'sunday' && d.period_end === sundayCutoff.toISOString());
+
+  const toInsert: any[] = [];
+  if (!hasFriday) {
+    const content = computeFridayDigest(transactions, fridayCutoff);
+    toInsert.push({ user_id: userId, kind: 'friday', period_end: fridayCutoff.toISOString(), spent: content.spent, indulgence_pct: content.indulgence_pct, top_categories: content.top_categories, insight: content.insight });
+  }
+  if (!hasSunday) {
+    const content = computeSundayDigest(transactions, sundayCutoff);
+    toInsert.push({ user_id: userId, kind: 'sunday', period_end: sundayCutoff.toISOString(), spent: content.spent, indulgence_pct: content.indulgence_pct, top_categories: content.top_categories, insight: content.insight });
+  }
+
+  if (toInsert.length === 0) return [];
+  const { data } = await supabase.from('digests').insert(toInsert).select();
+  return (data || []) as Digest[];
+}
 
 export default function App() {
   const supabase = createClient();
@@ -16,9 +44,19 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [monthlyPot, setMonthlyPot] = useState<number | null>(null);
+  const [theme, setTheme] = useState<string>(DEFAULT_THEME);
   const [apiKey, setApiKey] = useState('');
   const [reflections, setReflections] = useState<any[]>([]);
   const [flaggedSubs, setFlaggedSubs] = useState<any[]>([]);
+  const [recurringTemplates, setRecurringTemplates] = useState<RecurringTemplate[]>([]);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailNotice, setGmailNotice] = useState('');
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goalContributions, setGoalContributions] = useState<GoalContribution[]>([]);
+  const [digests, setDigests] = useState<Digest[]>([]);
+  const [intentions, setIntentions] = useState<Intention[]>([]);
+  const [lastVisitedAt, setLastVisitedAt] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('');
 
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [month, setMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
@@ -32,16 +70,22 @@ export default function App() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+      setDisplayName((user.email || '').split('@')[0]);
 
-      const [txnsRes, catsRes, settingsRes, reflRes, subsRes] = await Promise.all([
+      const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
         supabase.from('transactions').select('*').order('date', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('settings').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at').eq('user_id', user.id).maybeSingle(),
         supabase.from('reflections').select('*').order('created_at', { ascending: false }),
         supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
+        supabase.from('recurring_templates').select('*').order('sort_order'),
+        supabase.from('goals').select('*').order('created_at'),
+        supabase.from('goal_contributions').select('*').order('date'),
+        supabase.from('digests').select('*').order('period_end', { ascending: false }),
+        supabase.from('intentions').select('month_key, amount').order('month_key'),
       ]);
 
-      const firstError = txnsRes.error || catsRes.error || settingsRes.error || reflRes.error || subsRes.error;
+      const firstError = txnsRes.error || catsRes.error || settingsRes.error || reflRes.error || subsRes.error || recRes.error || goalsRes.error || contribRes.error || digestRes.error || intentRes.error;
       if (firstError) throw firstError;
 
       if (txnsRes.data) setTransactions(txnsRes.data as Transaction[]);
@@ -57,10 +101,34 @@ export default function App() {
 
       if (settingsRes.data) {
         setMonthlyPot(settingsRes.data.monthly_pot);
+        setTheme(settingsRes.data.theme || DEFAULT_THEME);
         setApiKey(settingsRes.data.claude_api_key || '');
+        setLastVisitedAt(settingsRes.data.last_visited_at || null);
       }
       if (reflRes.data) setReflections(reflRes.data);
       if (subsRes.data) setFlaggedSubs(subsRes.data);
+      if (recRes.data) setRecurringTemplates(recRes.data as RecurringTemplate[]);
+      if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
+      if (contribRes.data) setGoalContributions(contribRes.data as GoalContribution[]);
+      if (intentRes.data) setIntentions(intentRes.data as Intention[]);
+
+      // Record this visit for next time's "since you were last here" summary —
+      // done after reading the old value above, not before.
+      await supabase.from('settings').upsert({ user_id: user.id, last_visited_at: new Date().toISOString() });
+
+      // Generate any missing Friday/Sunday digests, bounded to their correct
+      // past cutoff (not "now"), then merge with whatever's already stored.
+      const existingDigests = (digestRes.data || []) as Digest[];
+      const newDigests = await generateMissingDigests(user.id, existingDigests, (txnsRes.data || []) as Transaction[]);
+      setDigests([...newDigests, ...existingDigests]);
+
+      try {
+        const gmailRes = await fetch('/api/gmail-status');
+        const gmailData = await gmailRes.json();
+        setGmailConnected(!!gmailData.connected);
+      } catch {
+        // Non-fatal — Gmail tile just shows as locked if this fails.
+      }
     } catch (err: any) {
       console.error('Failed to load Expensior data:', err);
       setLoadError(err?.message || 'Something went wrong loading your data.');
@@ -71,11 +139,110 @@ export default function App() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gmail = params.get('gmail');
+    if (gmail) {
+      if (gmail === 'connected') setGmailNotice('Gmail connected — open the Gmail tile to scan your inbox.');
+      else if (gmail === 'no_refresh_token') setGmailNotice('Google didn\'t grant offline access — try connecting again.');
+      else setGmailNotice('Something went wrong connecting Gmail. Try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+      setTimeout(() => setGmailNotice(''), 6000);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  async function saveTheme(id: string) {
+    setTheme(id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, theme: id });
+  }
+
   async function addTransaction(t: NewTransaction) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase.from('transactions').insert({ ...t, user_id: user.id }).select().single();
     if (data) setTransactions((prev) => [data as Transaction, ...prev]);
+  }
+
+  async function bulkAddTransactions(items: NewTransaction[]) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || items.length === 0) return;
+    const rows = items.map((t) => ({ ...t, user_id: user.id }));
+    const { data } = await supabase.from('transactions').insert(rows).select();
+    if (data) setTransactions((prev) => [...(data as Transaction[]), ...prev]);
+  }
+
+  async function logRecurring(template: RecurringTemplate) {
+    await addTransaction({
+      amount: template.amount,
+      description: template.name,
+      category: template.category,
+      type: 'expense',
+      indulgence: template.indulgence,
+      essential: template.essential,
+      regret: false,
+      tag: null,
+      notes: null,
+      date: new Date().toISOString().split('T')[0],
+      repeats: 'none',
+    });
+  }
+
+  async function addRecurringTemplate(t: Omit<RecurringTemplate, 'id' | 'sort_order'>) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('recurring_templates').insert({ ...t, user_id: user.id, sort_order: recurringTemplates.length }).select().single();
+    if (data) setRecurringTemplates((prev) => [...prev, data as RecurringTemplate]);
+  }
+
+  async function deleteRecurringTemplate(id: string) {
+    await supabase.from('recurring_templates').delete().eq('id', id);
+    setRecurringTemplates((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  async function addGoal(g: { name: string; target_amount: number; target_date: string | null }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('goals').insert({ ...g, user_id: user.id }).select().single();
+    if (data) setGoals((prev) => [...prev, data as Goal]);
+  }
+
+  async function logContribution(goalId: string, amount: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase.from('goal_contributions').insert({ user_id: user.id, goal_id: goalId, amount, date: today }).select().single();
+    if (!data) return;
+    const newContribution = data as GoalContribution;
+    setGoalContributions((prev) => [...prev, newContribution]);
+
+    // Auto-mark achieved the moment total contributions reach the target.
+    const goal = goals.find((g) => g.id === goalId);
+    if (goal && !goal.achieved_at) {
+      const totalSaved = goalContributions.filter((c) => c.goal_id === goalId).reduce((s, c) => s + c.amount, 0) + amount;
+      if (totalSaved >= goal.target_amount) {
+        const achievedAt = new Date().toISOString();
+        await supabase.from('goals').update({ achieved_at: achievedAt }).eq('id', goalId);
+        setGoals((prev) => prev.map((g) => (g.id === goalId ? { ...g, achieved_at: achievedAt } : g)));
+      }
+    }
+  }
+
+  async function setIntention(amount: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+    await supabase.from('intentions').upsert({ user_id: user.id, month_key: monthKey, amount }, { onConflict: 'user_id,month_key' });
+    setIntentions((prev) => {
+      const withoutThisMonth = prev.filter((i) => i.month_key !== monthKey);
+      return [...withoutThisMonth, { month_key: monthKey, amount }];
+    });
   }
 
   async function updateTransaction(id: string, t: Partial<NewTransaction>) {
@@ -153,56 +320,63 @@ export default function App() {
   });
 
   if (loading) {
-    return <div className="min-h-screen bg-[#1D2C3E] flex items-center justify-center text-[#BDB4C3] text-sm">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-sm">Loading…</div>;
   }
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[#1D2C3E] flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center">
-          <p className="text-[#FAF7F2] text-sm mb-2">Couldn&apos;t load your data</p>
-          <p className="text-[#BDB4C3] text-xs mb-4">{loadError}</p>
-          <p className="text-[#BDB4C3] text-xs mb-4">This usually means the database tables haven&apos;t been created yet — run <code>supabase/schema.sql</code> in your Supabase SQL Editor.</p>
-          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[#B56576] text-[#1D2C3E] rounded-lg px-4 py-2 text-xs font-medium">Try again</button>
+          <p className="text-[var(--text)] text-sm mb-2">Couldn&apos;t load your data</p>
+          <p className="text-[var(--muted)] text-xs mb-4">{loadError}</p>
+          <p className="text-[var(--muted)] text-xs mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
+          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-xs font-medium">Try again</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1D2C3E] p-4">
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-sm font-medium text-[#FAF7F2]">Expensior!</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={signOut} className="text-[11px] text-[#BDB4C3] hover:text-[#FAF7F2]">Sign out</button>
-          <button onClick={() => setSettingsOpen(true)} aria-label="Settings"><IconSettings size={18} className="text-[#BDB4C3] hover:text-[#FAF7F2]" /></button>
+    <div className="min-h-screen p-5">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+          <h1 className="text-base font-semibold text-[var(--text)] tracking-tight">
+            {displayName ? `Hello, ${displayName}` : 'Expensior!'}
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <button onClick={signOut} className="text-[11px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
+          <button onClick={() => setSettingsOpen(true)} aria-label="Settings" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors"><IconSettings size={18} /></button>
         </div>
       </div>
 
-      <div className="flex gap-3" style={{ height: 'calc(100vh - 64px)' }}>
-        <div className="flex flex-col gap-3" style={{ width: '70%' }}>
-          <div className="bg-[#355070] border border-[#6D597A] rounded-xl p-4" style={{ height: '38%' }}>
-            <EntryZone
-              categories={categories}
-              editingTxn={editingTxn}
-              onCancelEdit={() => setEditingTxn(null)}
-              onAdd={addTransaction}
-              onUpdate={updateTransaction}
-              onDelete={deleteTransaction}
-            />
-          </div>
-          <div style={{ height: '62%' }}>
-            <Dashboard
-              allTransactions={transactions}
-              monthlyPot={monthlyPot}
-              reflections={reflections}
-              onAddReflection={addReflection}
-              flaggedSubs={flaggedSubs}
-              onSelectCategory={(c) => setFilter({ ...emptyFilter(), categories: new Set([c]) })}
-            />
-          </div>
+      {gmailNotice && (
+        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-xs rounded-lg px-3 py-2 mb-4">
+          {gmailNotice}
         </div>
-        <div className="bg-[#355070] border border-[#6D597A] rounded-xl p-4" style={{ width: '30%' }}>
+      )}
+
+      <div className="flex gap-4" style={{ height: 'calc(100vh - 76px)' }}>
+        <div style={{ width: '70%' }}>
+          <Dashboard
+            allTransactions={transactions}
+            monthlyPot={monthlyPot}
+            reflections={reflections}
+            onAddReflection={addReflection}
+            flaggedSubs={flaggedSubs}
+            onSelectCategory={(c) => setFilter({ ...emptyFilter(), categories: new Set([c]) })}
+            goals={goals}
+            goalContributions={goalContributions}
+            onAddGoal={addGoal}
+            onLogContribution={logContribution}
+            digests={digests}
+            intentions={intentions}
+            onSetIntention={setIntention}
+            lastVisitedAt={lastVisitedAt}
+          />
+        </div>
+        <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20" style={{ width: '30%' }}>
           <Ledger
             monthLabel={month.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
             onPrevMonth={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
@@ -221,6 +395,26 @@ export default function App() {
         </div>
       </div>
 
+      <EntryFab
+        categories={categories}
+        recurringTemplates={recurringTemplates}
+        hasApiKey={!!apiKey}
+        gmailConnected={gmailConnected}
+        onAdd={addTransaction}
+        onBulkAdd={bulkAddTransactions}
+        onLogRecurring={logRecurring}
+      />
+
+      {editingTxn && (
+        <EditTransactionModal
+          categories={categories}
+          editingTxn={editingTxn}
+          onCancelEdit={() => setEditingTxn(null)}
+          onUpdate={updateTransaction}
+          onDelete={deleteTransaction}
+        />
+      )}
+
       <SettingsDrawer
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -229,10 +423,15 @@ export default function App() {
         onDeleteCategory={deleteCategory}
         monthlyPot={monthlyPot}
         onSaveMonthlyPot={saveMonthlyPot}
+        theme={theme}
+        onSaveTheme={saveTheme}
         apiKey={apiKey}
         onSaveApiKey={saveApiKey}
         onExportCSV={exportCSV}
         onClearAllData={clearAllData}
+        recurringTemplates={recurringTemplates}
+        onAddRecurringTemplate={addRecurringTemplate}
+        onDeleteRecurringTemplate={deleteRecurringTemplate}
       />
     </div>
   );
