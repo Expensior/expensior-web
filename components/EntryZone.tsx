@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { NewTransaction, Transaction } from '@/lib/types';
 
 const chip = (active: boolean) =>
-  `text-[11px] px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
+  `text-[13px] px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
     active ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60'
   }`;
 
@@ -67,7 +67,7 @@ export default function EditTransactionModal({
         onClick={(e) => e.stopPropagation()}
         className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 w-full max-w-sm shadow-lg max-h-[85vh] overflow-auto"
       >
-        <p className="text-[10px] text-[var(--muted)] mb-3">editing: {editingTxn.description} · {editingTxn.date}</p>
+        <p className="text-[12px] text-[var(--muted)] mb-3">editing: {editingTxn.description} · {editingTxn.date}</p>
 
         <div className="flex gap-2 mb-2">
           <input
@@ -75,24 +75,24 @@ export default function EditTransactionModal({
             placeholder="Amount"
             value={detail.amount || ''}
             onChange={(e) => setDetail({ ...detail, amount: parseFloat(e.target.value) || 0 })}
-            className="w-28 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            className="w-28 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-base text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           />
           <input
             placeholder="Merchant / description"
             value={detail.description}
             onChange={(e) => setDetail({ ...detail, description: e.target.value })}
-            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-base text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           />
         </div>
 
-        <p className="text-[10px] text-[var(--muted)] mb-1.5">Category</p>
+        <p className="text-[12px] text-[var(--muted)] mb-1.5">Category</p>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {categories.map((c) => (
             <span key={c} className={chip(detail.category === c)} onClick={() => setDetail({ ...detail, category: c })}>{c}</span>
           ))}
         </div>
 
-        <div className="flex gap-4 mb-2 text-[11px] text-[var(--muted)]">
+        <div className="flex gap-4 mb-2 text-[13px] text-[var(--muted)]">
           {(['expense', 'saving', 'windfall'] as const).map((t) => (
             <label key={t} className="flex items-center gap-1.5 cursor-pointer">
               <input type="radio" checked={detail.type === t} onChange={() => setDetail({ ...detail, type: t })} />
@@ -107,7 +107,7 @@ export default function EditTransactionModal({
           <span className={chip(detail.regret)} onClick={() => setDetail({ ...detail, regret: !detail.regret })}>regret</span>
         </div>
 
-        <p className="text-[10px] text-[var(--muted)] mb-1.5">Emotional tag</p>
+        <p className="text-[12px] text-[var(--muted)] mb-1.5">Emotional tag</p>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {TAGS.map((t) => (
             <span key={t} className={chip(detail.tag === t)} onClick={() => setDetail({ ...detail, tag: detail.tag === t ? null : t })}>{t}</span>
@@ -119,12 +119,12 @@ export default function EditTransactionModal({
             type="date"
             value={detail.date}
             onChange={(e) => setDetail({ ...detail, date: e.target.value })}
-            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-2 py-1.5 text-xs text-[var(--text)]"
+            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-2 py-1.5 text-sm text-[var(--text)]"
           />
           <select
             value={detail.repeats}
             onChange={(e) => setDetail({ ...detail, repeats: e.target.value as NewTransaction['repeats'] })}
-            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-2 py-1.5 text-xs text-[var(--muted)]"
+            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-2 py-1.5 text-sm text-[var(--muted)]"
           >
             <option value="none">Repeats: none</option>
             <option value="weekly">Weekly</option>
@@ -136,19 +136,19 @@ export default function EditTransactionModal({
           placeholder="Notes"
           value={detail.notes || ''}
           onChange={(e) => setDetail({ ...detail, notes: e.target.value })}
-          className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-1.5 text-xs text-[var(--text)] mb-3"
+          className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-1.5 text-sm text-[var(--text)] mb-3"
         />
 
         <div className="flex gap-2 pt-3 border-t border-[var(--border)]/30">
-          <button type="submit" className="flex-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2 text-xs font-medium">Save changes</button>
+          <button type="submit" className="flex-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2 text-sm font-medium">Save changes</button>
           <button
             type="button"
             onClick={async () => { await onDelete(editingTxn.id); onCancelEdit(); }}
-            className="border border-[var(--danger)] text-[var(--danger)] rounded-lg px-3 text-xs"
+            className="border border-[var(--danger)] text-[var(--danger)] rounded-lg px-3 text-sm"
           >
             Delete
           </button>
-          <button type="button" onClick={onCancelEdit} className="bg-[var(--bg)]/50 border border-[var(--border)]/70 text-[var(--muted)] rounded-lg px-3 text-xs">
+          <button type="button" onClick={onCancelEdit} className="bg-[var(--bg)]/50 border border-[var(--border)]/70 text-[var(--muted)] rounded-lg px-3 text-sm">
             Cancel
           </button>
         </div>

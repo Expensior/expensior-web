@@ -59,7 +59,7 @@ export default function SettingsDrawer({
         className={`fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--bg)] border-l border-[var(--border)] z-50 transition-transform overflow-y-auto ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-sm font-medium text-[var(--text)]">Settings</h2>
+          <h2 className="text-base font-medium text-[var(--text)]">Settings</h2>
           <button onClick={onClose} aria-label="Close settings"><IconX size={18} className="text-[var(--muted)]" /></button>
         </div>
 
@@ -75,7 +75,7 @@ export default function SettingsDrawer({
                   <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
                 ))}
               </div>
-              <span className="text-xs text-[var(--text)] flex-1">{(currentTheme || THEMES[0]).name}</span>
+              <span className="text-sm text-[var(--text)] flex-1">{(currentTheme || THEMES[0]).name}</span>
               <IconChevronDown size={16} className="text-[var(--muted)] transition-transform" style={{ transform: appearanceOpen ? 'rotate(180deg)' : 'none' }} />
             </button>
             {appearanceOpen && (
@@ -95,7 +95,7 @@ export default function SettingsDrawer({
                         <span key={i} className="w-4 h-4 rounded-full border border-[var(--border)]" style={{ background: c }} />
                       ))}
                     </div>
-                    <span className="text-xs text-[var(--text)] flex-1">{t.name}</span>
+                    <span className="text-sm text-[var(--text)] flex-1">{t.name}</span>
                     {theme === t.id && <IconCheck size={16} className="text-[var(--accent)] shrink-0" />}
                   </button>
                 ))}
@@ -106,33 +106,33 @@ export default function SettingsDrawer({
           <Section title="Categories & budget">
             <div className="flex flex-wrap gap-1.5 mb-2">
               {categories.map((c) => (
-                <span key={c} className="text-[11px] px-2 py-1 rounded-full border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors flex items-center gap-1.5">
+                <span key={c} className="text-[13px] px-2 py-1 rounded-full border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors flex items-center gap-1.5">
                   {c}
                   <button onClick={() => onDeleteCategory(c)} className="text-[var(--muted)] hover:text-[var(--danger)]">×</button>
                 </span>
               ))}
             </div>
             <div className="flex gap-2 mb-4">
-              <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-              <button onClick={() => { if (newCat.trim()) { onAddCategory(newCat.trim()); setNewCat(''); } }} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs">Add</button>
+              <input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="New category" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+              <button onClick={() => { if (newCat.trim()) { onAddCategory(newCat.trim()); setNewCat(''); } }} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Add</button>
             </div>
-            <label className="text-[11px] text-[var(--muted)] block mb-1.5">Monthly pot</label>
+            <label className="text-[13px] text-[var(--muted)] block mb-1.5">Monthly pot</label>
             <div className="flex gap-2">
-              <input type="number" value={pot} onChange={(e) => setPot(e.target.value)} placeholder="e.g. 40000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-              <button onClick={() => onSaveMonthlyPot(parseFloat(pot) || 0)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs">Save</button>
+              <input type="number" value={pot} onChange={(e) => setPot(e.target.value)} placeholder="e.g. 40000" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+              <button onClick={() => onSaveMonthlyPot(parseFloat(pot) || 0)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Save</button>
             </div>
           </Section>
 
           <Section title="API and parsing">
-            <label className="text-[11px] text-[var(--muted)] block mb-1.5">Claude API key</label>
+            <label className="text-[13px] text-[var(--muted)] block mb-1.5">Claude API key</label>
             {!editingKey ? (
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--muted)]">
+                <div className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--muted)]">
                   {apiKey ? '•'.repeat(24) : 'Not set'}
                 </div>
                 <button
                   onClick={() => { setKey(''); setEditingKey(true); }}
-                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs shrink-0"
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm shrink-0"
                 >
                   {apiKey ? 'Change' : 'Add'}
                 </button>
@@ -145,54 +145,54 @@ export default function SettingsDrawer({
                   value={key}
                   onChange={(e) => setKey(e.target.value)}
                   placeholder="sk-ant-..."
-                  className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]"
+                  className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]"
                 />
                 <button
                   onClick={() => { onSaveApiKey(key); setEditingKey(false); }}
-                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs shrink-0"
+                  className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm shrink-0"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => { setKey(apiKey); setEditingKey(false); }}
-                  className="text-[var(--muted)] text-xs px-2 shrink-0"
+                  className="text-[var(--muted)] text-sm px-2 shrink-0"
                 >
                   Cancel
                 </button>
               </div>
             )}
-            <p className="text-[10px] text-[var(--muted)] mt-1.5">Used for AI-assisted categorisation on merchants the built-in patterns don&apos;t recognise.</p>
+            <p className="text-[12px] text-[var(--muted)] mt-1.5">Used for AI-assisted categorisation on merchants the built-in patterns don&apos;t recognise.</p>
           </Section>
 
           <Section title="Recurring templates">
             <div className="flex flex-col gap-1.5 mb-3">
-              {recurringTemplates.length === 0 && <p className="text-[11px] text-[var(--muted)]">None yet — add one below.</p>}
+              {recurringTemplates.length === 0 && <p className="text-[13px] text-[var(--muted)]">None yet — add one below.</p>}
               {recurringTemplates.map((t) => (
                 <div key={t.id} className="flex justify-between items-center bg-[var(--surface)] border border-[var(--border)]/60 rounded-lg px-2.5 py-2">
                   <div>
-                    <p className="text-xs text-[var(--text)]">{t.name}</p>
-                    <p className="text-[10px] text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
+                    <p className="text-sm text-[var(--text)]">{t.name}</p>
+                    <p className="text-[12px] text-[var(--muted)]">₹{t.amount.toLocaleString('en-IN')} · {t.cadence} · {t.category}</p>
                   </div>
-                  <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-xs">×</button>
+                  <button onClick={() => onDeleteRecurringTemplate(t.id)} className="text-[var(--muted)] hover:text-[var(--danger)] text-sm">×</button>
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mb-2">
-              <input value={recName} onChange={(e) => setRecName(e.target.value)} placeholder="Name, e.g. Rent" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
-              <input type="number" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="Amount" className="w-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)]" />
+              <input value={recName} onChange={(e) => setRecName(e.target.value)} placeholder="Name, e.g. Rent" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
+              <input type="number" value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="Amount" className="w-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)]" />
             </div>
             <div className="flex gap-2 mb-2">
-              <select value={recCadence} onChange={(e) => setRecCadence(e.target.value as 'monthly' | 'weekly')} className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--muted)]">
+              <select value={recCadence} onChange={(e) => setRecCadence(e.target.value as 'monthly' | 'weekly')} className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--muted)]">
                 <option value="monthly">Monthly</option>
                 <option value="weekly">Weekly</option>
               </select>
               <button
                 onClick={() => {
                   if (!recName.trim() || !recAmount) return;
-                  onAddRecurringTemplate({ name: recName.trim(), amount: parseFloat(recAmount), category: categories[0] || 'Other', indulgence: false, essential: true, cadence: recCadence });
+                  onAddRecurringTemplate({ name: recName.trim(), amount: parseFloat(recAmount), category: 'Other', indulgence: false, essential: true, cadence: recCadence });
                   setRecName(''); setRecAmount('');
                 }}
-                className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs"
+                className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm"
               >
                 Add
               </button>
@@ -200,19 +200,19 @@ export default function SettingsDrawer({
           </Section>
 
           <Section title="Data and sync">
-            <button onClick={onExportCSV} className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-xs mb-2">Export as CSV</button>
-            <p className="text-[10px] text-[var(--muted)]">Your data lives in Supabase and is reachable from any device you sign into — no manual backup needed.</p>
+            <button onClick={onExportCSV} className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-lg py-2 text-sm mb-2">Export as CSV</button>
+            <p className="text-[12px] text-[var(--muted)]">Your data lives in Supabase and is reachable from any device you sign into — no manual backup needed.</p>
           </Section>
 
           <Section title="Danger zone" danger>
             {!confirmClear ? (
-              <button onClick={() => setConfirmClear(true)} className="w-full border border-[var(--danger)] text-[var(--danger)] rounded-lg py-2 text-xs">Clear all data</button>
+              <button onClick={() => setConfirmClear(true)} className="w-full border border-[var(--danger)] text-[var(--danger)] rounded-lg py-2 text-sm">Clear all data</button>
             ) : (
               <div>
-                <p className="text-xs text-[var(--danger)] mb-2">This permanently deletes every transaction. This can&apos;t be undone.</p>
+                <p className="text-sm text-[var(--danger)] mb-2">This permanently deletes every transaction. This can&apos;t be undone.</p>
                 <div className="flex gap-2">
-                  <button onClick={() => { onClearAllData(); setConfirmClear(false); }} className="flex-1 bg-[var(--danger)] text-[var(--text)] rounded-lg py-2 text-xs">Yes, delete everything</button>
-                  <button onClick={() => setConfirmClear(false)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-xs">Cancel</button>
+                  <button onClick={() => { onClearAllData(); setConfirmClear(false); }} className="flex-1 bg-[var(--danger)] text-[var(--text)] rounded-lg py-2 text-sm">Yes, delete everything</button>
+                  <button onClick={() => setConfirmClear(false)} className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sm">Cancel</button>
                 </div>
               </div>
             )}
@@ -226,7 +226,7 @@ export default function SettingsDrawer({
 function Section({ title, children, danger }: { title: string; children: React.ReactNode; danger?: boolean }) {
   return (
     <div className="mb-6">
-      <h3 className={`text-[11px] uppercase tracking-wide mb-2.5 ${danger ? 'text-[var(--danger)]' : 'text-[var(--muted)]'}`}>{title}</h3>
+      <h3 className={`text-[13px] uppercase tracking-wide mb-2.5 ${danger ? 'text-[var(--danger)]' : 'text-[var(--muted)]'}`}>{title}</h3>
       {children}
     </div>
   );

@@ -44,6 +44,7 @@ create table if not exists settings (
   theme text not null default 'dusty-rose',
   claude_api_key text, -- server-side use only, never sent to the browser
   gmail_refresh_token text, -- server-side ONLY — never selected in client-side queries
+  display_name text, -- shown in the "Hello, X" greeting — falls back to email prefix if unset
   last_visited_at timestamptz, -- for the "since you were last here" summary
   daily_prompt_hour int default 21,
   friday_digest_hour int default 18,
@@ -219,3 +220,6 @@ create policy "own rows only" on digests for all using (auth.uid() = user_id) wi
 -- create policy "own rows only" on goals for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- create policy "own rows only" on goal_contributions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- create policy "own rows only" on digests for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Migration if you already ran schema.sql before the editable display name existed:
+-- alter table settings add column if not exists display_name text;

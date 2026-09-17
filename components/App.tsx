@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { IconSettings } from '@tabler/icons-react';
+import { IconSettings, IconPencil } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
 import { DEFAULT_THEME } from '@/lib/themes';
@@ -57,6 +57,8 @@ export default function App() {
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [lastVisitedAt, setLastVisitedAt] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [month, setMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
@@ -75,7 +77,7 @@ export default function App() {
       const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
         supabase.from('transactions').select('*').order('date', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at').eq('user_id', user.id).maybeSingle(),
+        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name').eq('user_id', user.id).maybeSingle(),
         supabase.from('reflections').select('*').order('created_at', { ascending: false }),
         supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
         supabase.from('recurring_templates').select('*').order('sort_order'),
@@ -104,6 +106,7 @@ export default function App() {
         setTheme(settingsRes.data.theme || DEFAULT_THEME);
         setApiKey(settingsRes.data.claude_api_key || '');
         setLastVisitedAt(settingsRes.data.last_visited_at || null);
+        if (settingsRes.data.display_name) setDisplayName(settingsRes.data.display_name);
       }
       if (reflRes.data) setReflections(reflRes.data);
       if (subsRes.data) setFlaggedSubs(subsRes.data);
@@ -160,6 +163,15 @@ export default function App() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('settings').upsert({ user_id: user.id, theme: id });
+  }
+
+  async function saveDisplayName(name: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    await supabase.from('settings').upsert({ user_id: user.id, display_name: trimmed });
+    setDisplayName(trimmed);
   }
 
   async function addTransaction(t: NewTransaction) {
@@ -320,17 +332,17 @@ export default function App() {
   });
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-sm">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-base">Loading…</div>;
   }
 
   if (loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center">
-          <p className="text-[var(--text)] text-sm mb-2">Couldn&apos;t load your data</p>
-          <p className="text-[var(--muted)] text-xs mb-4">{loadError}</p>
-          <p className="text-[var(--muted)] text-xs mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
-          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-xs font-medium">Try again</button>
+          <p className="text-[var(--text)] text-base mb-2">Couldn&apos;t load your data</p>
+          <p className="text-[var(--muted)] text-sm mb-4">{loadError}</p>
+          <p className="text-[var(--muted)] text-sm mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
+          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sm font-medium">Try again</button>
         </div>
       </div>
     );
@@ -341,24 +353,46 @@ export default function App() {
       <div className="flex justify-between items-center mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-          <h1 className="text-lg font-semibold text-[var(--text)] tracking-tight">
-            {displayName ? `Hello, ${displayName}` : 'Expensior!'}
-          </h1>
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-semibold text-[var(--text)] tracking-tight">Hello,</span>
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { saveDisplayName(nameInput); setEditingName(false); } if (e.key === 'Escape') setEditingName(false); }}
+                className="text-xl font-semibold text-[var(--text)] tracking-tight bg-[var(--surface)] border border-[var(--accent)] rounded-lg px-2 py-0.5 w-40"
+              />
+              <button onClick={() => { saveDisplayName(nameInput); setEditingName(false); }} className="text-sm text-[var(--accent)] font-medium">Save</button>
+              <button onClick={() => setEditingName(false)} className="text-sm text-[var(--muted)]">Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNameInput(displayName); setEditingName(true); }}
+              className="flex items-center gap-1.5 group"
+              title="Click to edit your name"
+            >
+              <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">
+                {displayName ? `Hello, ${displayName}` : 'Expensior!'}
+              </h1>
+              <IconPencil size={16} className="text-[var(--muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={signOut} className="text-[13px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
+          <button onClick={signOut} className="text-[15px] text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign out</button>
           <button onClick={() => setSettingsOpen(true)} aria-label="Settings" className="text-[var(--muted)] hover:text-[var(--text)] transition-colors"><IconSettings size={18} /></button>
         </div>
       </div>
 
       {gmailNotice && (
-        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-xs rounded-lg px-3 py-2 mb-4 shrink-0">
+        <div className="bg-[var(--surface)] border border-[var(--border)]/50 text-[var(--text)] text-sm rounded-lg px-3 py-2 mb-4 shrink-0">
           {gmailNotice}
         </div>
       )}
 
       <div className="flex gap-4 flex-1 min-h-0">
-        <div className="min-h-0" style={{ width: '70%' }}>
+        <div className="min-h-0 relative" style={{ width: '70%' }}>
           <Dashboard
             allTransactions={transactions}
             monthlyPot={monthlyPot}
@@ -374,6 +408,15 @@ export default function App() {
             intentions={intentions}
             onSetIntention={setIntention}
             lastVisitedAt={lastVisitedAt}
+          />
+          <EntryFab
+            categories={categories}
+            recurringTemplates={recurringTemplates}
+            hasApiKey={!!apiKey}
+            gmailConnected={gmailConnected}
+            onAdd={addTransaction}
+            onBulkAdd={bulkAddTransactions}
+            onLogRecurring={logRecurring}
           />
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-lg shadow-black/20 min-h-0" style={{ width: '30%' }}>
@@ -394,16 +437,6 @@ export default function App() {
           />
         </div>
       </div>
-
-      <EntryFab
-        categories={categories}
-        recurringTemplates={recurringTemplates}
-        hasApiKey={!!apiKey}
-        gmailConnected={gmailConnected}
-        onAdd={addTransaction}
-        onBulkAdd={bulkAddTransactions}
-        onLogRecurring={logRecurring}
-      />
 
       {editingTxn && (
         <EditTransactionModal
