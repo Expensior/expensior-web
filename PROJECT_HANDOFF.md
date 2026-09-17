@@ -202,24 +202,31 @@ related is broken.**
   block scroll-chaining by default. Fixed by adding `overscroll-contain`
   (`overscroll-behavior: contain`) to the drawer's outer wrapper. Not yet
   confirmed live.
-- **Sticky day-header horizontal gap — ACTUAL root cause found, much simpler
-  than first assumed.** The user's precise description ("the background
-  doesn't go all the way to the left and right, a bit of underlying text is
-  still visible when scrolled") pointed to something different from a
-  scroll-timing issue: the transaction rows use a "bleed" trick
-  (`-mx-1.5 px-2`) so their colored background extends slightly wider than
-  their logical box position. The sticky header had NO matching bleed at all
-  on the regular (non-"today") variant, and a *different, mismatched* bleed
-  amount on the "today" variant (`marginLeft/Right: -8` vs the rows'
-  `-mx-1.5` = -6px). Since the header's background was narrower than the
-  rows sitting behind it, a row's wider background could peek out past the
-  header's edges on both sides during scroll. Fixed by giving the header the
-  *exact same* `-mx-1.5 px-2` as the rows, applied uniformly to both header
-  variants. **This replaces my earlier, incorrect diagnosis** (that this was
-  an inherent per-group `position: sticky` timing limitation needing a
-  JS/IntersectionObserver rewrite) — that diagnosis was wrong; this was a
-  plain CSS width mismatch the whole time. Not yet confirmed live, but this
-  fix is far more targeted and likely correct than the previous one.
+- **Sticky day-header horizontal gap — FINAL fix, precisely computed rather
+  than guessed.** Two earlier attempts at this were wrong in instructive
+  ways: the first tried matching the header's margin to the transaction
+  row's own `-mx-1.5`, which seemed reasonable but didn't work, because the
+  row's *visible* color mostly comes from a separate absolutely-positioned
+  fill overlay (`left:0; width:fillPct%`), not the row's own border-box
+  background — so matching the row's margin wasn't actually matching what
+  produces the row's visible color. The second attempt just widened the
+  header's margin arbitrarily (`-mx-3`), which was still a guess. **The
+  actual fix**: traced the full accumulated inset precisely — the Ledger
+  panel has `p-4` (16px) and the scroll container has its own `-mx-1 px-1.5`
+  (net +2px inset), for a total of 18px between the panel's true edge and
+  where content normally starts. Both the header AND the transaction rows
+  now use the identical `-mx-[18px] px-5` — canceling that exact 18px to
+  reach the panel's true edge, with `px-5` (20px) restoring the text's
+  visual position so it doesn't shift. Applying the *same* value to both
+  elements (rather than independently-derived values that happen to differ)
+  guarantees they align with each other structurally, not by coincidence.
+  **If the Ledger panel's own padding (`p-4` in `App.tsx`) or the scroll
+  container's `-mx-1 px-1.5` ever changes, this 18px figure must be
+  recomputed and updated in both places** — it is not automatically
+  responsive to those values changing, which is a real fragility worth
+  knowing about. A fully responsive version would compute this via a shared
+  CSS custom property or restructure so the bleed only needs to be defined
+  once, but that wasn't done here given time constraints.
 - **AI-assisted categorization + collective knowledge** (this session): local
   keyword hints → shared `global_merchant_patterns` lookup → Claude API call
   (only if user has a key set) → result written back to the shared table.
