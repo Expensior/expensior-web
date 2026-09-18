@@ -427,6 +427,32 @@ confirmation. **Verify all of these live before considering them closed.**
   re-verified with the new 5/2/2/1 slide-count structure — all 10 slides
   visited exactly once in the correct order, both directions.
 
+- **Feature guide legibility bug (found via screenshots, fixed)**: the
+  card-wide accent-tint approach from the previous fix was confirmed broken
+  via three screenshots across three different themes (Spring awakening,
+  Coastal breeze, Monsoon and earth) — the tier name and tagline text were
+  washed out and barely readable in every single one. Root cause:
+  `var(--text)`/`var(--muted)` are proven to contrast well against the app's
+  normal `var(--bg)`/`var(--surface)` backgrounds (used everywhere else in
+  the app), but were never actually validated against a *computed*
+  accent-tint background — that pairing was an unverified assumption, and it
+  failed. **Fixed by reverting the card itself to the plain, proven
+  `var(--bg)`** and moving all tier differentiation into two small,
+  non-text-bearing elements instead: the numbered badge (outline → thicker
+  outline → filled, as strength increases) and the icon circle. While fixing
+  this, caught and fixed a second instance of the *exact same class of bug*
+  before it shipped: the icon circle's full-strength tier used
+  `var(--accent)` for both the background AND the icon color, which would
+  have made the icon invisible against its own background — same mistake,
+  caught this time by re-reading the code rather than needing a fourth
+  screenshot. **Lesson for this specific pattern going forward**: any time a
+  background color is *computed* (via `color-mix` or similar) rather than
+  being one of the small set of base theme variables, do not assume an
+  existing text/icon color pairing carries over — it needs to be reasoned
+  through explicitly for that specific computed value, since the existing
+  pairing was only ever validated against the base variables it was
+  designed for.
+
 - **Feature guide (this session)**: recovered from the ORIGINAL Chrome
   extension's `popup.js`, which had an onboarding "feature guide" — a
   click-through slide deck organized by tier, with an `isRoadmap` flag

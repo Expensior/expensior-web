@@ -78,36 +78,34 @@ const TIERS: TierGuide[] = [
   },
 ];
 
-// Progressively stronger tint of the theme's own accent color per tier --
-// index 0/1/2 map to light/medium/full. Text flips to var(--bg) once the
-// background gets dark enough, matching the same pairing already used
-// throughout the app's accent-filled buttons.
+// Progressively stronger tint of the theme's own accent color, applied ONLY
+// to small, non-text-bearing elements (the badge, the icon circle) -- never
+// to the card background itself. Earlier version tinted the whole card and
+// kept var(--text)/var(--muted) for the label and tagline, which looked
+// fine in isolation but was never actually tested against a COMPUTED tint
+// background -- confirmed broken (washed-out, low-contrast text) across
+// three different themes via screenshots. Card background now always stays
+// on var(--bg), the one background var(--text)/var(--muted) are actually
+// proven to contrast against everywhere else in the app.
 function tierStyle(tier: TierGuide, tierIdx: number) {
   if (tier.isSecurity) {
     return {
-      cardBg: 'var(--surface)',
-      cardBorder: '1px dashed var(--border)',
-      textColor: 'var(--text)',
-      mutedColor: 'var(--muted)',
+      badgeBg: 'var(--accent)',
+      badgeBorder: 'none',
       iconCircleBg: 'color-mix(in srgb, var(--accent), var(--surface) 85%)',
       iconColor: 'var(--accent)',
       dotActive: 'var(--accent)',
       dotInactive: 'var(--border)',
-      navTextColor: 'var(--muted)',
     };
   }
-  const strength = [15, 55, 100][tierIdx] ?? 15; // % accent mixed into the card background
-  const dark = tierIdx >= 1; // medium and full tiers get light text
+  const strength = [15, 55, 100][tierIdx] ?? 15;
   return {
-    cardBg: `color-mix(in srgb, var(--accent), var(--surface) ${100 - strength}%)`,
-    cardBorder: '1px solid var(--border)',
-    textColor: dark ? 'var(--bg)' : 'var(--text)',
-    mutedColor: dark ? 'color-mix(in srgb, var(--bg), transparent 25%)' : 'var(--muted)',
-    iconCircleBg: dark ? 'color-mix(in srgb, var(--bg), transparent 85%)' : 'color-mix(in srgb, var(--accent), transparent 85%)',
-    iconColor: dark ? 'var(--bg)' : 'var(--accent)',
-    dotActive: dark ? 'var(--bg)' : 'var(--accent)',
-    dotInactive: dark ? 'color-mix(in srgb, var(--bg), transparent 65%)' : 'var(--border)',
-    navTextColor: dark ? 'color-mix(in srgb, var(--bg), transparent 30%)' : 'var(--muted)',
+    badgeBg: strength >= 100 ? 'var(--accent)' : 'transparent',
+    badgeBorder: strength >= 100 ? 'none' : `1.5px solid color-mix(in srgb, var(--accent), var(--border) ${100 - strength}%)`,
+    iconCircleBg: `color-mix(in srgb, var(--accent), var(--surface) ${100 - strength}%)`,
+    iconColor: strength >= 100 ? 'var(--bg)' : 'var(--accent)',
+    dotActive: 'var(--accent)',
+    dotInactive: 'var(--border)',
   };
 }
 
@@ -147,34 +145,38 @@ export default function FeatureGuide({ open, onClose }: { open: boolean; onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
-      <div
-        className="w-full max-w-sm rounded-2xl p-6 relative transition-colors"
-        style={{ background: style.cardBg, border: style.cardBorder }}
-      >
-        <button onClick={onClose} aria-label="Close feature guide" className="absolute top-4 right-4 opacity-70 hover:opacity-100" style={{ color: style.textColor }}>
+      <div className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-2xl p-6 relative">
+        <button onClick={onClose} aria-label="Close feature guide" className="absolute top-4 right-4 text-[var(--muted)] hover:text-[var(--text)]">
           <IconX size={18} />
         </button>
 
         <div className="flex items-start justify-between mb-0.5 pr-8">
-          <p className="text-sc-11 uppercase tracking-wide font-semibold" style={{ color: style.textColor }}>{tier.name}</p>
+          <p className="text-sc-11 uppercase tracking-wide font-semibold text-[var(--accent)]">{tier.name}</p>
           {tier.isSecurity ? (
-            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--accent)' }}>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: style.badgeBg }}>
               <IconShieldLock size={12} style={{ color: 'var(--bg)' }} />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-sc-11 font-medium" style={{ border: `1.5px solid ${style.textColor}`, color: style.textColor }}>
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-sc-11 font-medium"
+              style={{
+                background: style.badgeBg,
+                border: style.badgeBorder,
+                color: style.badgeBg === 'var(--accent)' ? 'var(--bg)' : 'var(--accent)',
+              }}
+            >
               {tierIdx + 1}
             </div>
           )}
         </div>
-        <p className="text-sc-12 mb-6" style={{ color: style.mutedColor }}>{tier.tagline}</p>
+        <p className="text-sc-12 text-[var(--muted)] mb-6">{tier.tagline}</p>
 
         <div className="flex flex-col items-center text-center py-4">
           <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: style.iconCircleBg }}>
             <Icon size={28} style={{ color: style.iconColor }} />
           </div>
-          <p className="text-sc-16 font-semibold mb-2" style={{ color: style.textColor }}>{slide.title}</p>
-          <p className="text-sc-14 leading-relaxed" style={{ color: style.mutedColor }}>{slide.body}</p>
+          <p className="text-sc-16 font-semibold text-[var(--text)] mb-2">{slide.title}</p>
+          <p className="text-sc-14 text-[var(--muted)] leading-relaxed">{slide.body}</p>
         </div>
 
         <div className="flex items-center justify-center gap-1.5 my-5">
@@ -197,18 +199,13 @@ export default function FeatureGuide({ open, onClose }: { open: boolean; onClose
           <button
             onClick={back}
             disabled={isFirst}
-            className="flex items-center gap-1 text-sc-13 disabled:opacity-0 transition-opacity"
-            style={{ color: style.navTextColor }}
+            className="flex items-center gap-1 text-sc-13 text-[var(--muted)] disabled:opacity-0 hover:text-[var(--text)] transition-colors"
           >
             <IconChevronLeft size={16} /> Back
           </button>
           <button
             onClick={next}
-            className="flex items-center gap-1 rounded-lg px-4 py-2 text-sc-13 font-medium"
-            style={{
-              background: style.textColor === 'var(--bg)' ? 'var(--bg)' : 'var(--accent)',
-              color: style.textColor === 'var(--bg)' ? 'var(--accent)' : 'var(--bg)',
-            }}
+            className="flex items-center gap-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sc-13 font-medium"
           >
             {isLast ? 'Done' : 'Next'} {!isLast && <IconChevronRight size={16} />}
           </button>
