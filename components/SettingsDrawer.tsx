@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown, IconLogout, IconCompass } from '@tabler/icons-react';
 import FeatureGuide from './FeatureGuide';
+import MfaSettings from './MfaSettings';
 import { THEMES } from '@/lib/themes';
 import type { RecurringTemplate, Category } from '@/lib/types';
 
@@ -138,6 +139,10 @@ export default function SettingsDrawer({
               inactiveHint="Add a Claude API key below to activate"
               onInactiveClick={() => { setEditingKey(true); apiKeySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
             />
+          </Section>
+
+          <Section title="Security">
+            <MfaSettings />
           </Section>
 
           <Section title="Appearance">

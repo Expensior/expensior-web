@@ -54,7 +54,7 @@ Indulgence rate by category (indulgentCount out of totalCount): ${JSON.stringify
 Month-over-month category spend deltas: ${JSON.stringify(summary.monthOverMonthDeltas)}
 Most frequent merchants: ${JSON.stringify(summary.frequentMerchants)}
 
-Write 2 to 3 short insight cards. Each finds a SPECIFIC pattern connecting at least two of these dimensions together (e.g. a day-of-week AND a category, or a category AND its indulgence rate) -- not a single flat number restated. Only surface a pattern if the data actually shows one; if nothing stands out in a dimension, leave it out rather than inventing something.
+Write 2 to 3 short insight cards. Each finds a SPECIFIC pattern connecting at least two of these dimensions together (e.g. a day-of-week AND a category, or a category AND its indulgence rate) -- not a single flat number restated. Only surface a pattern if the data actually shows one; if nothing stands out in a dimension, leave it out rather than inventing something. All amounts in the data are Indian Rupees -- if you mention a number, format it as ₹ (e.g. ₹2,109), never $ or USD.
 
 Tone rules, non-negotiable:
 - Observational first: state the pattern as a fact you noticed, not a problem to fix.

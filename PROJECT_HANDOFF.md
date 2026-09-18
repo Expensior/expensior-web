@@ -354,6 +354,79 @@ confirmation. **Verify all of these live before considering them closed.**
   `console.error` output this fix adds (it now logs the raw response text on
   any parse failure).
 
+- **Insights confirmed working live, with one real bug caught and fixed**:
+  the feature was tested end-to-end for the first time and the generated
+  insights were genuinely good — specific, cross-metric, and the tone landed
+  exactly as intended (e.g. "It might be worth noticing what's different
+  about Thursdays for you" — soft-possibility phrasing, not prescriptive, no
+  banned words). This was the single most speculative part of this whole
+  session (a prompt's tone can't be verified just by reading it), and it
+  worked. **One real bug found by reading the actual output closely**: it
+  used `$` instead of `₹` for currency (e.g. "$2,109") — the prompt never
+  explicitly specified which currency the numbers represent, so Claude
+  defaulted to the more common training-data convention. Fixed by adding an
+  explicit instruction to the prompt. This is exactly the kind of small,
+  easy-to-miss issue that only shows up from actually reading generated
+  output, not from reviewing the prompt in isolation — worth scanning any
+  future AI-generated text in this app for the same class of mistake
+  (unstated assumptions Claude fills in with a generic default).
+
+- **Two-factor authentication (this session)**: uses Supabase Auth's built-in
+  TOTP MFA (free, enabled by default on all Supabase projects — verified via
+  web search against current docs, not from memory, since this is
+  security-critical code). Three new pieces:
+  - `components/MfaSettings.tsx` — Settings > Security section. Enroll shows
+    a QR code plus the raw secret as a manual-entry fallback (per Supabase's
+    own recommendation for people who can't scan), verifies with a 6-digit
+    code, and can unenroll with a confirmation step. Also cleans up the
+    unverified factor if enrollment is cancelled mid-flow, rather than
+    leaving an orphaned factor behind.
+  - `components/MfaChallenge.tsx` — a full-screen gate shown instead of the
+    app when needed.
+  - **The critical piece**: `App.tsx`'s `load()` function now calls
+    `getAuthenticatorAssuranceLevel()` right after confirming a session,
+    before loading any data. If `currentLevel !== nextLevel`, the person has
+    a verified factor but hasn't passed the challenge yet this session — the
+    app renders `MfaChallenge` instead of proceeding. **This check is the
+    whole point** — per Supabase's own docs, enrolling a factor by itself
+    enforces nothing; an application has to actually check the AAL and gate
+    on it, or the enrollment UI is decorative. This gate runs regardless of
+    which method signed the person in (magic link or Google), since it lives
+    in `App.tsx`'s shared load path rather than in either auth callback
+    route individually.
+  - **Confidence level**: TypeScript compiled clean against the actual
+    `@supabase/supabase-js` types for every method and response shape used
+    (`enroll`, `challenge`, `challengeAndVerify`, `unenroll`, `listFactors`,
+    `getAuthenticatorAssuranceLevel`, and their return shapes) — if any
+    property name were wrong, this would have failed to compile. That's
+    real signal, but **this has not been tested against an actual
+    authenticator app or a live Supabase project** — the full enroll →
+    scan → verify → sign-out → sign-in-again → challenge loop needs a real
+    end-to-end test before trusting it in practice. No new migration is
+    needed for this feature — it uses Supabase's built-in auth schema, not
+    a custom table.
+
+- **Feature guide tier differentiation and 2FA slide (this session)**: two
+  problems fixed. First, all tier slides looked visually identical — fixed
+  with a progressive tint of the theme's own accent color (light → medium →
+  full strength) computed via `color-mix()` on existing CSS variables, plus
+  a numbered badge (1/2/3) as the primary, unambiguous differentiator (shade
+  alone can be too subtle to register at a glance). **Deliberately theme-
+  inheriting, not hardcoded monochrome** — this was a direct choice over an
+  earlier monochrome proposal, since reusing `var(--accent)`/`var(--surface)`
+  means it automatically looks correct across all 11 themes without
+  hardcoding a new palette or needing to verify each theme individually.
+  Text color flips to `var(--bg)` once a tier's background gets dark enough
+  (tiers 2 and 3), reusing the exact accent-button text pairing already used
+  throughout the rest of the app, rather than introducing a new pairing to
+  verify. Second, 2FA setup had no slide explaining it — added as a 4th
+  section, "Account and security," which is NOT a tier (works identically
+  regardless of what's unlocked) and is styled to visually say so: plain
+  surface background, dashed border, a lock badge instead of a numbered one.
+  Navigation logic (already generic across variable-length tiers) was
+  re-verified with the new 5/2/2/1 slide-count structure — all 10 slides
+  visited exactly once in the correct order, both directions.
+
 - **Feature guide (this session)**: recovered from the ORIGINAL Chrome
   extension's `popup.js`, which had an onboarding "feature guide" — a
   click-through slide deck organized by tier, with an `isRoadmap` flag

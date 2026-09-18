@@ -13,6 +13,7 @@ import EntryFab from './EntryFab';
 import Ledger, { emptyFilter, type LedgerFilter } from './Ledger';
 import Dashboard from './Dashboard';
 import SettingsDrawer from './SettingsDrawer';
+import MfaChallenge from './MfaChallenge';
 
 async function generateMissingDigests(userId: string, existing: Digest[], transactions: Transaction[], enabled: { friday: boolean; sunday: boolean }) {
   const supabase = createClient();
@@ -76,11 +77,23 @@ export default function App() {
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [mfaNeedsVerification, setMfaNeedsVerification] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+
+      // Enforce MFA here: enrolling a factor alone doesn't block anything by
+      // itself. currentLevel !== nextLevel means the user has a verified
+      // factor but this session hasn't passed the challenge yet.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal && aal.currentLevel !== aal.nextLevel) {
+        setMfaNeedsVerification(true);
+        setLoading(false);
+        return;
+      }
+
       setDisplayName((user.email || '').split('@')[0]);
 
       const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
@@ -459,6 +472,10 @@ export default function App() {
     const d = new Date(t.date + 'T12:00:00');
     return d.getMonth() === month.getMonth() && d.getFullYear() === month.getFullYear();
   });
+
+  if (mfaNeedsVerification) {
+    return <MfaChallenge onVerified={() => { setMfaNeedsVerification(false); setLoading(true); load(); }} />;
+  }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-[var(--muted)] text-sc-16">Loading…</div>;
