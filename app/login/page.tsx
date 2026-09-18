@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { IconPigMoney, IconCompass } from '@tabler/icons-react';
+import FeatureGuide from '@/components/FeatureGuide';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -39,9 +42,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <button
+        onClick={() => setGuideOpen(true)}
+        className="absolute top-5 right-5 flex items-center gap-1.5 text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-sc-13"
+        aria-label="Explore what Expensior can do"
+      >
+        <IconCompass size={18} /> Explore
+      </button>
+
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+            style={{ background: 'color-mix(in srgb, var(--accent), transparent 85%)' }}
+          >
+            <IconPigMoney size={32} className="text-[var(--accent)]" />
+          </div>
           <h1 className="text-2xl font-medium text-[var(--text)]">Expensior!</h1>
           <p className="text-sm text-[var(--muted)] mt-1">Track expenses, savings and indulgence</p>
         </div>
@@ -88,6 +105,8 @@ export default function LoginPage() {
           </>
         )}
       </div>
+
+      <FeatureGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }

@@ -50,6 +50,10 @@ export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [reflections, setReflections] = useState<any[]>([]);
   const [flaggedSubs, setFlaggedSubs] = useState<any[]>([]);
+  const [insightCards, setInsightCards] = useState<{ title: string; body: string }[] | null>(null);
+  const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null);
+  const [generatingInsights, setGeneratingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState('');
   const [recurringTemplates, setRecurringTemplates] = useState<RecurringTemplate[]>([]);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailNotice, setGmailNotice] = useState('');
@@ -94,6 +98,19 @@ export default function App() {
 
       const firstError = txnsRes.error || catsRes.error || settingsRes.error || reflRes.error || subsRes.error || recRes.error || goalsRes.error || contribRes.error || digestRes.error || intentRes.error;
       if (firstError) throw firstError;
+
+      // Queried separately (not in the batch above, not throwing on error):
+      // this is a newer table, and a user who hasn't run the migration yet
+      // shouldn't have their ENTIRE app fail to load over an optional feature.
+      try {
+        const { data: insightsRow } = await supabase.from('insights').select('cards, generated_at').eq('user_id', user.id).maybeSingle();
+        if (insightsRow) {
+          setInsightCards(insightsRow.cards);
+          setInsightsGeneratedAt(insightsRow.generated_at);
+        }
+      } catch {
+        // Table doesn't exist yet or some other non-critical issue — insights just won't show until migrated.
+      }
 
       if (txnsRes.data) setTransactions(txnsRes.data as Transaction[]);
 
@@ -211,6 +228,24 @@ export default function App() {
     if (!user) return;
     await supabase.from('settings').upsert({ user_id: user.id, sunday_wrap_enabled: enabled });
     setSundayWrapEnabled(enabled);
+  }
+
+  async function generateInsights() {
+    setGeneratingInsights(true);
+    setInsightsError('');
+    try {
+      const res = await fetch('/api/generate-insights', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setInsightsError(data.error || 'Could not generate insights.');
+      } else {
+        setInsightCards(data.cards);
+        setInsightsGeneratedAt(new Date().toISOString());
+      }
+    } catch {
+      setInsightsError('Something went wrong reaching the insights service.');
+    }
+    setGeneratingInsights(false);
   }
 
   async function sendFeedback(message: string) {
@@ -504,6 +539,12 @@ export default function App() {
             lastVisitedAt={lastVisitedAt}
             gmailConnected={gmailConnected}
             onAddFlaggedSubscription={addFlaggedSubscription}
+            hasApiKey={!!apiKey}
+            insightCards={insightCards}
+            insightsGeneratedAt={insightsGeneratedAt}
+            generatingInsights={generatingInsights}
+            insightsError={insightsError}
+            onGenerateInsights={generateInsights}
           />
         </div>
 

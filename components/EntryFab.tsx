@@ -79,7 +79,8 @@ export default function EntryFab({
             <div className="p-6">
               <div className="fab-grid grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <Tile icon={IconKeyboard} label="Type" primary onClick={() => setView('type')} />
-                <Tile icon={IconMicrophone} label="Voice" onClick={() => setView('voice')} />
+                {/* Voice input disabled — unreliable on both desktop and mobile. Code kept below (VoiceView) in case browser speech APIs improve. */}
+                {/* <Tile icon={IconMicrophone} label="Voice" onClick={() => setView('voice')} /> */}
                 <Tile icon={IconMessage2} label="SMS/Chat" onClick={() => setView('sms')} />
                 <Tile icon={IconScan} label="Scan" locked={!hasApiKey} onClick={() => setView('scan')} />
                 <Tile icon={IconMail} label="Gmail" locked={!gmailConnected} onClick={() => setView('gmail')} />
@@ -112,9 +113,10 @@ export default function EntryFab({
           {view === 'type' && (
             <TypeView categories={categories} onBack={() => setView('hub')} onAdd={onAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
           )}
-          {view === 'voice' && (
+          {/* Voice input disabled — see note above the Voice tile in the hub grid */}
+          {/* {view === 'voice' && (
             <VoiceView categories={categories} hasApiKey={hasApiKey} onBack={() => setView('hub')} onAdd={onAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
-          )}
+          )} */}
           {view === 'sms' && (
             <SmsView categories={categories} hasApiKey={hasApiKey} onBack={() => setView('hub')} onBulkAdd={onBulkAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
           )}

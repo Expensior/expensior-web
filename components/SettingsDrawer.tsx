@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown, IconLogout } from '@tabler/icons-react';
+import { IconX, IconCheck, IconChevronDown, IconPencil, IconArrowUp, IconArrowDown, IconLogout, IconCompass } from '@tabler/icons-react';
+import FeatureGuide from './FeatureGuide';
 import { THEMES } from '@/lib/themes';
 import type { RecurringTemplate, Category } from '@/lib/types';
 
@@ -87,6 +88,7 @@ export default function SettingsDrawer({
   const [editRecName, setEditRecName] = useState('');
   const [editRecAmount, setEditRecAmount] = useState('');
   const [editRecCadence, setEditRecCadence] = useState<'monthly' | 'weekly'>('monthly');
+  const [guideOpen, setGuideOpen] = useState(false);
   const apiKeySectionRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES.find((t) => t.id === theme);
@@ -106,9 +108,15 @@ export default function SettingsDrawer({
         <div className="p-4">
           <button
             onClick={onSignOut}
-            className="w-full flex items-center justify-center gap-2 bg-[var(--bg)]/40 border border-[var(--border)]/60 text-[var(--text)] rounded-lg py-2.5 text-sc-14 font-medium mb-6"
+            className="w-full flex items-center justify-center gap-2 bg-[var(--bg)]/40 border border-[var(--border)]/60 text-[var(--text)] rounded-lg py-2.5 text-sc-14 font-medium mb-2"
           >
             <IconLogout size={16} /> Sign out
+          </button>
+          <button
+            onClick={() => setGuideOpen(true)}
+            className="w-full flex items-center justify-center gap-2 text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-sc-13 mb-6"
+          >
+            <IconCompass size={15} /> Feature guide
           </button>
 
           <Section title="Tiers">
@@ -422,6 +430,7 @@ export default function SettingsDrawer({
           </Section>
         </div>
       </div>
+      <FeatureGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   IconGauge, IconChartLine, IconTargetArrow, IconNotebook, IconSunrise,
-  IconFlag, IconPlus, IconClock, IconFlame, IconTrophy,
+  IconFlag, IconPlus, IconClock, IconFlame, IconTrophy, IconSparkles,
 } from '@tabler/icons-react';
 import { fmt } from '@/lib/parse';
 import { CAT_COLORS } from '@/lib/categories';
@@ -43,6 +43,7 @@ export default function Dashboard({
   goals, goalContributions, onAddGoal, onLogContribution,
   digests, intentions, onSetIntention, lastVisitedAt,
   gmailConnected, onAddFlaggedSubscription,
+  hasApiKey, insightCards, insightsGeneratedAt, generatingInsights, insightsError, onGenerateInsights,
 }: {
   allTransactions: Transaction[];
   monthlyPot: number | null;
@@ -60,6 +61,12 @@ export default function Dashboard({
   lastVisitedAt: string | null;
   gmailConnected: boolean;
   onAddFlaggedSubscription: (merchant: string, amount: number) => void;
+  hasApiKey: boolean;
+  insightCards: { title: string; body: string }[] | null;
+  insightsGeneratedAt: string | null;
+  generatingInsights: boolean;
+  insightsError: string;
+  onGenerateInsights: () => void;
 }) {
   const [activeMain, setActiveMain] = useState('overview');
   const [activeSub, setActiveSub] = useState<Record<string, string>>({});
@@ -96,7 +103,7 @@ export default function Dashboard({
           </div>
         )}
         <div className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-auto min-w-0">
-          {currentSub === 'overview' && <Overview allTransactions={allTransactions} onSelectCategory={onSelectCategory} streak={streak} lastVisitedAt={lastVisitedAt} />}
+          {currentSub === 'overview' && <Overview allTransactions={allTransactions} onSelectCategory={onSelectCategory} streak={streak} lastVisitedAt={lastVisitedAt} hasApiKey={hasApiKey} insightCards={insightCards} insightsGeneratedAt={insightsGeneratedAt} generatingInsights={generatingInsights} insightsError={insightsError} onGenerateInsights={onGenerateInsights} />}
           {currentSub === 'patterns' && <Patterns allTransactions={allTransactions} monthlyPot={monthlyPot} />}
           {currentSub === 'trends' && <Trends allTransactions={allTransactions} />}
           {currentSub === 'selfknow' && <SelfKnowledge allTransactions={allTransactions} intentions={intentions} onSetIntention={onSetIntention} />}
@@ -145,7 +152,21 @@ function DeltaStat({ label, value, icon: Icon, deltaPct, color }: { label: strin
   );
 }
 
-function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: { allTransactions: Transaction[]; onSelectCategory: (c: string) => void; streak: number; lastVisitedAt: string | null }) {
+function Overview({
+  allTransactions, onSelectCategory, streak, lastVisitedAt,
+  hasApiKey, insightCards, insightsGeneratedAt, generatingInsights, insightsError, onGenerateInsights,
+}: {
+  allTransactions: Transaction[];
+  onSelectCategory: (c: string) => void;
+  streak: number;
+  lastVisitedAt: string | null;
+  hasApiKey: boolean;
+  insightCards: { title: string; body: string }[] | null;
+  insightsGeneratedAt: string | null;
+  generatingInsights: boolean;
+  insightsError: string;
+  onGenerateInsights: () => void;
+}) {
   const now = new Date();
   const thisWeek = allTransactions.filter((t) => inWeek(t, weekRange(0)));
   const lastWeek = allTransactions.filter((t) => inWeek(t, weekRange(-1)));
@@ -248,6 +269,50 @@ function Overview({ allTransactions, onSelectCategory, streak, lastVisitedAt }: 
             <div key={i} className="flex-1 rounded-sm" style={{ height: `${Math.max(15, (w / (Math.max(...weeklyTrend, 1))) * 100)}%`, background: 'color-mix(in srgb, var(--muted), transparent 40%)' }} />
           ))}
         </div>
+      </div>
+
+      <div className="bg-[var(--bg)]/40 rounded-2xl p-6 shrink-0">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sc-16 text-[var(--muted)] uppercase tracking-wide">Insights</p>
+          {!hasApiKey ? null : (
+            <button
+              onClick={onGenerateInsights}
+              disabled={generatingInsights}
+              className="flex items-center gap-1.5 text-sc-13 text-[var(--accent)] disabled:opacity-60"
+            >
+              <IconSparkles size={14} />
+              {generatingInsights ? 'Thinking…' : insightCards ? 'Refresh' : 'Generate'}
+            </button>
+          )}
+        </div>
+
+        {!hasApiKey ? (
+          <p className="text-sc-14 text-[var(--muted)]">
+            Add a Claude API key in Settings to unlock AI insights that connect patterns across days, categories, and habits.
+          </p>
+        ) : insightsError ? (
+          <p className="text-sc-14" style={{ color: 'var(--danger)' }}>{insightsError}</p>
+        ) : !insightCards ? (
+          <p className="text-sc-14 text-[var(--muted)]">
+            Tap Generate to look for patterns across your spending — like a day of the week that tends to line up with a category, or how your indulgence habits break down.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 mt-3">
+              {insightCards.map((card, i) => (
+                <div key={i} className="bg-[var(--surface)] rounded-xl p-4">
+                  <p className="text-sc-14 font-semibold text-[var(--text)] mb-1">{card.title}</p>
+                  <p className="text-sc-14 text-[var(--muted)] leading-relaxed">{card.body}</p>
+                </div>
+              ))}
+            </div>
+            {insightsGeneratedAt && (
+              <p className="text-sc-11 text-[var(--muted)] mt-3">
+                Generated {new Date(insightsGeneratedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} — tap Refresh for an updated read.
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

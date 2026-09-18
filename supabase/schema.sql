@@ -154,6 +154,15 @@ create table if not exists global_merchant_patterns (
   updated_at timestamptz not null default now()
 );
 
+-- On-demand AI insights (Overview tab). One row per user, overwritten each
+-- time they tap "Generate" -- this is on-demand, not a history, so no need
+-- to keep old generations around.
+create table if not exists insights (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  cards jsonb not null, -- [{title, body}, ...]
+  generated_at timestamptz not null default now()
+);
+
 -- Row Level Security: every table only ever shows the logged-in user's own rows
 alter table transactions enable row level security;
 alter table categories enable row level security;
@@ -167,6 +176,7 @@ alter table goals enable row level security;
 alter table goal_contributions enable row level security;
 alter table digests enable row level security;
 alter table feedback enable row level security;
+alter table insights enable row level security;
 alter table global_merchant_patterns enable row level security;
 
 create policy "own rows only" on transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -181,6 +191,7 @@ create policy "own rows only" on goals for all using (auth.uid() = user_id) with
 create policy "own rows only" on goal_contributions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on digests for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows only" on feedback for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own rows only" on insights for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Different shape from every other policy here on purpose: any signed-in
 -- user can read AND write, since the whole point is shared knowledge. No
@@ -267,6 +278,7 @@ create policy "shared update" on global_merchant_patterns for update using (auth
 -- );
 -- alter table feedback enable row level security;
 -- create policy "own rows only" on feedback for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own rows only" on insights for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- alter table settings add column if not exists daily_prompt_enabled boolean not null default true;
 -- alter table settings add column if not exists friday_digest_enabled boolean not null default true;
 -- alter table settings add column if not exists sunday_wrap_enabled boolean not null default true;
@@ -282,3 +294,11 @@ create policy "shared update" on global_merchant_patterns for update using (auth
 -- create policy "shared write" on global_merchant_patterns for insert with check (auth.role() = 'authenticated');
 -- create policy "shared update" on global_merchant_patterns for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 -- alter table settings add column if not exists text_size text not null default 'default';
+
+-- Migration if you already ran schema.sql before insights existed:
+-- create table insights (
+--   user_id uuid primary key references auth.users(id) on delete cascade,
+--   cards jsonb not null, generated_at timestamptz not null default now()
+-- );
+-- alter table insights enable row level security;
+-- create policy "own rows only" on insights for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
