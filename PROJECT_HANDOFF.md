@@ -202,31 +202,16 @@ related is broken.**
   block scroll-chaining by default. Fixed by adding `overscroll-contain`
   (`overscroll-behavior: contain`) to the drawer's outer wrapper. Not yet
   confirmed live.
-- **Sticky day-header horizontal gap — FINAL fix, precisely computed rather
-  than guessed.** Two earlier attempts at this were wrong in instructive
-  ways: the first tried matching the header's margin to the transaction
-  row's own `-mx-1.5`, which seemed reasonable but didn't work, because the
-  row's *visible* color mostly comes from a separate absolutely-positioned
-  fill overlay (`left:0; width:fillPct%`), not the row's own border-box
-  background — so matching the row's margin wasn't actually matching what
-  produces the row's visible color. The second attempt just widened the
-  header's margin arbitrarily (`-mx-3`), which was still a guess. **The
-  actual fix**: traced the full accumulated inset precisely — the Ledger
-  panel has `p-4` (16px) and the scroll container has its own `-mx-1 px-1.5`
-  (net +2px inset), for a total of 18px between the panel's true edge and
-  where content normally starts. Both the header AND the transaction rows
-  now use the identical `-mx-[18px] px-5` — canceling that exact 18px to
-  reach the panel's true edge, with `px-5` (20px) restoring the text's
-  visual position so it doesn't shift. Applying the *same* value to both
-  elements (rather than independently-derived values that happen to differ)
-  guarantees they align with each other structurally, not by coincidence.
-  **If the Ledger panel's own padding (`p-4` in `App.tsx`) or the scroll
-  container's `-mx-1 px-1.5` ever changes, this 18px figure must be
-  recomputed and updated in both places** — it is not automatically
-  responsive to those values changing, which is a real fragility worth
-  knowing about. A fully responsive version would compute this via a shared
-  CSS custom property or restructure so the bleed only needs to be defined
-  once, but that wasn't done here given time constraints.
+- **Sticky day-header horizontal gap — CONFIRMED FIXED (redeployed and
+  verified working).** The `-mx-[18px] px-5` fix described above was
+  correct on the first precise attempt; the report that it "still wasn't
+  fixed" turned out to be a stale deployment, not a wrong number. **Pattern
+  worth noting**: this was at least the second time this session a fix was
+  reported as not working when the actual issue was testing a stale build
+  (the `settings.text_size` column error was the other clear case). Before
+  assuming a fix is wrong and iterating further, confirm the latest zip was
+  actually redeployed and hard-refresh the browser first — it's cheaper than
+  another round of guessing.
 - **AI-assisted categorization + collective knowledge** (this session): local
   keyword hints → shared `global_merchant_patterns` lookup → Claude API call
   (only if user has a key set) → result written back to the shared table.
@@ -294,7 +279,79 @@ confirmation. **Verify all of these live before considering them closed.**
    toggle-switch fix both had this exact issue) — re-verify against the
    LATEST zip before assuming there's still a bug here.**
 
-## Testing notes worth knowing (patterns that mattered)
+- **AI insights (this session, on-demand)**: a "Generate" button in Overview,
+  below the existing graphics. Tapping it aggregates the person's FULL
+  transaction history (never sent raw to Claude — see
+  `lib/insightsSummary.ts`) into day×category totals, regret counts by day,
+  indulgence rate by category, month-over-month deltas, and frequent
+  merchants, then asks Claude to find 2-3 specific cross-metric patterns.
+  Results are cached in a new `insights` table (one row per user, overwritten
+  each generation — this is on-demand, not scheduled, so no history is kept).
+  **The aggregation logic was unit-tested against synthetic data with
+  hand-calculated expected values** (day totals, regret counts, indulgence
+  rates, MoM deltas, windfall-exclusion) before ever being wired to the API
+  — all passed. **The prompt is the highest-risk part of this feature and
+  deserves scrutiny if anyone edits it**: this app's whole "awareness
+  without guilt" philosophy has been protected everywhere else through
+  hand-written, carefully-worded strings (digest insights, Overview's
+  category sentence, etc.) — this is the first surface where an LLM
+  generates the user-facing insight text itself, which means it's not
+  automatically bound by that care unless the prompt enforces it explicitly.
+  The current prompt bans specific words ("overspending", "wasting", "bad",
+  "guilty") and requires suggestions to be phrased as soft possibilities, but
+  wording like this is inherently a "test and see what it actually
+  generates" situation, not something provably correct from reading the
+  prompt alone — this needs real usage against a real API key to know if the
+  tone lands right, more than any other feature in this document.
+  **Migration note**: same "queried separately, doesn't throw" pattern used
+  here as elsewhere — a missing `insights` table (unmigrated) degrades
+  gracefully to "no cached insights yet" rather than breaking the whole
+  app's data load, learned from repeated migration-lag issues earlier this
+  session.
+
+- **Voice input disabled (this session)**: proved unreliable on both desktop
+  and mobile. Commented out (not deleted) in `EntryFab.tsx` — the tile in
+  the hub grid and the `VoiceView` render call are both commented with a
+  note pointing to each other. `VoiceView` itself is untouched and still
+  fully defined, just unreachable. Also removed from `FeatureGuide.tsx`'s
+  slides. If browser speech APIs improve enough to reconsider, the code is
+  still there to uncomment rather than needing to be rebuilt.
+
+- **Model string bug (caught and fixed this session)**: all three Claude API
+  routes (`scan-receipt`, `categorize-merchant`, `generate-insights`) were
+  using `claude-sonnet-4-6` — which is the model string specific to
+  Artifacts' in-browser demo `fetch()` calls, not a valid string for real
+  production API usage. This would have made every AI feature fail (or hit
+  the wrong model) the moment someone actually tried them with a real API
+  key. Fixed to `claude-sonnet-5`, the current correct model string,
+  confirmed via web search against Anthropic's own pricing page rather than
+  from memory. **Worth double-checking model strings specifically** any time
+  new AI features get added to this codebase — this mistake was silent
+  (compiled fine, only breaks at actual runtime against a real key).
+
+- **Feature guide (this session)**: recovered from the ORIGINAL Chrome
+  extension's `popup.js`, which had an onboarding "feature guide" — a
+  click-through slide deck organized by tier, with an `isRoadmap` flag
+  distinguishing real features from "coming soon" ones. Rebuilt as
+  `components/FeatureGuide.tsx`, a single reusable component used in two
+  places: an "Explore" button on the login page (before sign-in), and a
+  "Feature guide" link in Settings (right after Sign Out, matching the
+  original's "re-accessible from Settings" behavior). Content reflects the
+  CURRENT build, not the original's — worth knowing: Screenshot Scan and
+  Voice were the two features the original app's own onboarding admitted
+  were fake placeholders (`isRoadmap: true`). Scan is real and working in
+  this build. Voice was too, briefly — it was included in this guide when
+  first built, then removed later the same session once it proved
+  unreliable (see the "Voice input disabled" entry above). No `isRoadmap`-style flag exists in the current
+  data structure since nothing shown is currently a placeholder — if a
+  genuinely aspirational feature gets added to this guide later, that
+  pattern from the original is worth reviving rather than reinventing.
+  Forward/backward navigation across tier boundaries was unit-tested with
+  varying tier sizes (3/2/1 slides) and confirmed correct in both
+  directions. The login page also got its first proper logo mark (a piggy
+  bank icon in an accent-tinted circle, matching an icon visible in the very
+  earliest screenshots of the old extension's UI) — previously it was
+  text-only ("Expensior!" as a plain heading, no mark at all).
 
 - **Every non-trivial function in this codebase has been unit-tested in
   isolation** via `npx tsx` scratch scripts before shipping — this caught
