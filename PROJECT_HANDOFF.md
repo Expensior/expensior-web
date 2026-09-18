@@ -329,6 +329,31 @@ confirmation. **Verify all of these live before considering them closed.**
   new AI features get added to this codebase — this mistake was silent
   (compiled fine, only breaks at actual runtime against a real key).
 
+- **"Something went wrong generating insights" error (reported live, fixed)**:
+  this exact string is the server-side catch-all in
+  `app/api/generate-insights/route.ts`, meaning the request reached the
+  server but something threw inside the try block. Most likely cause: the
+  original code did `JSON.parse()` on the ENTIRE cleaned response text,
+  trusting Claude returned pure JSON with nothing else — but `max_tokens` was
+  only 700, and if Claude's response got cut off mid-array (very plausible
+  for 2-3 cards with explanatory bodies) or included any stray preamble
+  despite instructions, that naive parse would throw and fall through to
+  this exact generic message. **Fixed with three changes**: (1) `max_tokens`
+  raised to 1024 for safety margin, (2) JSON extraction now uses a regex to
+  pull the `[...]` substring out of the response rather than assuming the
+  whole string is valid JSON — tested against pure JSON, markdown-fenced
+  JSON, leading preamble text, trailing commentary, and truncated/cut-off
+  arrays, all handled correctly except truncation (which now correctly
+  fails with a clear, specific error rather than the vague generic one), (3)
+  malformed individual cards are filtered out rather than failing the whole
+  batch over one bad entry. **I could not access server logs to confirm this
+  was definitively the cause** — this is the single most likely explanation
+  given the exact error message and the code path, not a certainty. If the
+  same generic error recurs after this fix, the next step is checking
+  Vercel's function logs directly for the new, more specific
+  `console.error` output this fix adds (it now logs the raw response text on
+  any parse failure).
+
 - **Feature guide (this session)**: recovered from the ORIGINAL Chrome
   extension's `popup.js`, which had an onboarding "feature guide" — a
   click-through slide deck organized by tier, with an `isRoadmap` flag

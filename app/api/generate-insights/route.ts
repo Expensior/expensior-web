@@ -40,7 +40,7 @@ export async function POST() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 700,
+        max_tokens: 1024,
         messages: [
           {
             role: 'user',
@@ -77,16 +77,37 @@ Respond with ONLY a JSON array, no other text, no markdown fences: [{"title": "<
 
     const data = await anthropicRes.json();
     const textBlock = data.content?.find((b: any) => b.type === 'text')?.text || '[]';
-    const cleaned = textBlock.replace(/```json|```/g, '').trim();
-    const cards = JSON.parse(cleaned);
 
-    if (!Array.isArray(cards) || cards.length === 0) {
+    // Robust extraction: pull out the [...] substring rather than trusting the
+    // WHOLE response is pure JSON. Claude can add a stray word of preamble
+    // despite instructions, or the response can get cut off mid-array by the
+    // token cap -- either would break a naive JSON.parse on the full string.
+    const arrayMatch = textBlock.match(/\[[\s\S]*\]/);
+    if (!arrayMatch) {
+      console.error('Insights: no JSON array found in response:', textBlock);
+      return NextResponse.json({ error: 'Could not read the insights response — try again.' }, { status: 502 });
+    }
+
+    let cards: any[];
+    try {
+      cards = JSON.parse(arrayMatch[0]);
+    } catch (parseErr) {
+      console.error('Insights: JSON parse failed. Raw text:', textBlock, 'Parse error:', parseErr);
+      return NextResponse.json({ error: 'Could not read the insights response — try again.' }, { status: 502 });
+    }
+
+    // Filter out any malformed entries rather than failing the whole batch over one bad card.
+    const validCards = (Array.isArray(cards) ? cards : []).filter(
+      (c) => c && typeof c.title === 'string' && typeof c.body === 'string' && c.title.trim() && c.body.trim()
+    );
+
+    if (validCards.length === 0) {
       return NextResponse.json({ error: 'Could not generate insights from your data yet.' }, { status: 502 });
     }
 
-    await supabase.from('insights').upsert({ user_id: user.id, cards, generated_at: new Date().toISOString() });
+    await supabase.from('insights').upsert({ user_id: user.id, cards: validCards, generated_at: new Date().toISOString() });
 
-    return NextResponse.json({ cards });
+    return NextResponse.json({ cards: validCards });
   } catch (err) {
     console.error('Insights generation failed:', err);
     return NextResponse.json({ error: 'Something went wrong generating insights.' }, { status: 500 });
