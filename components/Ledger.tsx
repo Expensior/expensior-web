@@ -199,7 +199,7 @@ export default function Ledger({
   }
 
   const chip = (active: boolean) =>
-    `text-sc-14 px-2.5 py-1.5 rounded-full border cursor-pointer ${active ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`;
+    `text-sc-14 px-2.5 py-1.5 rounded-full border cursor-pointer ${active ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors'}`;
 
   const potPct = monthlyPot ? (monthTotal / monthlyPot) * 100 : null;
   const sparkMax = Math.max(...sparkline.daily, 1);

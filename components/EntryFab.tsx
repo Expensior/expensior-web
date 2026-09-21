@@ -121,7 +121,7 @@ export default function EntryFab({
             <SmsView categories={categories} hasApiKey={hasApiKey} onBack={() => setView('hub')} onBulkAdd={onBulkAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
           )}
           {view === 'scan' && (
-            <ScanView categories={categories} hasApiKey={hasApiKey} onBack={() => setView('hub')} onAdd={onAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
+            <ScanView categories={categories} hasApiKey={hasApiKey} onBack={() => setView('hub')} onBulkAdd={onBulkAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
           )}
           {view === 'gmail' && <GmailView connected={gmailConnected} hasApiKey={hasApiKey} onBack={() => setView('hub')} onBulkAdd={onBulkAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} categories={categories} />}
         </div>
@@ -526,10 +526,11 @@ function SmsView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { categor
   );
 }
 
-function ScanView({ categories, hasApiKey, onBack, onAdd, onDone }: { categories: string[]; hasApiKey: boolean; onBack: () => void; onAdd: (t: NewTransaction) => Promise<void>; onDone: (msg: string) => void }) {
+function ScanView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { categories: string[]; hasApiKey: boolean; onBack: () => void; onBulkAdd: (items: NewTransaction[]) => Promise<void>; onDone: (msg: string) => void }) {
   const [loading, setLoading] = useState(false);
+  const [loadingCount, setLoadingCount] = useState(0);
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState<{ amount: number; description: string; category: string; indulgence: boolean; date: string } | null>(null);
+  const [previews, setPreviews] = useState<{ id: string; amount: number; description: string; category: string; indulgence: boolean; date: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!hasApiKey) {
@@ -547,9 +548,7 @@ function ScanView({ categories, hasApiKey, onBack, onAdd, onDone }: { categories
     );
   }
 
-  async function handleFile(file: File) {
-    setLoading(true);
-    setError('');
+  async function handleOneFile(file: File): Promise<{ amount: number; description: string; category: string; indulgence: boolean; date: string } | null> {
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -563,62 +562,123 @@ function ScanView({ categories, hasApiKey, onBack, onAdd, onDone }: { categories
         body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Could not read that image.'); setLoading(false); return; }
-      if (!data.amount) { setError('Could not find an amount in that image — try Type instead.'); setLoading(false); return; }
+      if (!res.ok || !data.amount) return null;
       const supabase = createClient();
       const guess = await smartCategorize(supabase, data.merchant, categories, hasApiKey);
-      setPreview({ amount: data.amount, description: data.merchant, category: guess.category, indulgence: guess.indulgence, date: data.date || todayStr() });
+      return { amount: data.amount, description: data.merchant, category: guess.category, indulgence: guess.indulgence, date: data.date || todayStr() };
     } catch {
-      setError('Something went wrong reading that image.');
+      return null;
     }
+  }
+
+  async function handleFiles(files: File[]) {
+    setLoading(true);
+    setLoadingCount(files.length);
+    setError('');
+    const results = await Promise.all(files.map(handleOneFile));
+    const successful = results
+      .map((r, i) => r && { ...r, id: `${Date.now()}-${i}` })
+      .filter((r): r is { id: string; amount: number; description: string; category: string; indulgence: boolean; date: string } => !!r);
+    const failedCount = files.length - successful.length;
+    if (successful.length === 0) {
+      setError(files.length === 1 ? 'Could not find an amount in that image — try Type instead.' : 'Could not read any of those images — try Type instead.');
+    } else if (failedCount > 0) {
+      setError(`Read ${successful.length} of ${files.length} images — ${failedCount} couldn't be parsed and were skipped.`);
+    }
+    setPreviews((prev) => [...prev, ...successful]);
     setLoading(false);
   }
 
-  async function confirm() {
-    if (!preview) return;
-    await onAdd({
-      amount: preview.amount, description: preview.description, category: preview.category,
-      type: 'expense', indulgence: preview.indulgence, essential: !preview.indulgence,
-      regret: false, tag: null, notes: null, date: preview.date, repeats: 'none',
-    });
-    onDone(`Added ${fmt(preview.amount)} · ${preview.description}`);
+  function updatePreview(id: string, updates: Partial<{ amount: number; description: string; category: string; indulgence: boolean; date: string }>) {
+    setPreviews((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  }
+
+  function removePreview(id: string) {
+    setPreviews((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function confirmAll() {
+    await onBulkAdd(previews.map((p) => ({
+      amount: p.amount, description: p.description, category: p.category,
+      type: 'expense' as const, indulgence: p.indulgence, essential: !p.indulgence,
+      regret: false, tag: null, notes: null, date: p.date, repeats: 'none' as const,
+    })));
+    onDone(`Added ${previews.length} transaction${previews.length === 1 ? '' : 's'}`);
   }
 
   return (
     <div className="p-5">
       <BackHeader label="Scan" onBack={onBack} />
-      {!preview && (
+      {previews.length === 0 && (
         <div
           onClick={() => fileRef.current?.click()}
           className="border border-dashed border-[var(--accent)]/40 rounded-lg p-8 text-center cursor-pointer mt-1"
         >
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => e.target.files && e.target.files.length > 0 && handleFiles(Array.from(e.target.files))}
+          />
           {loading ? (
-            <p className="text-sc-18 text-[var(--muted)]">Reading image…</p>
+            <p className="text-sc-18 text-[var(--muted)]">Reading {loadingCount > 1 ? `${loadingCount} images` : 'image'}…</p>
           ) : (
             <>
               <IconScan size={26} className="text-[var(--accent)] mx-auto mb-1.5" />
-              <p className="text-sc-18 font-medium text-[var(--text)]">Tap to upload a photo</p>
-              <p className="text-sc-15 text-[var(--muted)] mt-1">Receipt, invoice, or order screenshot</p>
+              <p className="text-sc-18 font-medium text-[var(--text)]">Tap to upload photos</p>
+              <p className="text-sc-15 text-[var(--muted)] mt-1">Receipts, invoices, or order screenshots — select multiple at once</p>
             </>
           )}
           {error && <p className="text-sc-17 text-[var(--danger)] mt-2">{error}</p>}
         </div>
       )}
-      {preview && (
-        <div className="bg-[var(--bg)]/30 rounded-lg p-4 mt-1">
-          <div className="flex items-center gap-2 mb-2">
-            <IconReceipt size={22} className="text-[var(--accent)]" />
-            <span className="text-sc-22 font-semibold text-[var(--text)]">{fmt(preview.amount)}</span>
-          </div>
-          <input value={preview.description} onChange={(e) => setPreview({ ...preview, description: e.target.value })} className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1.5 text-sc-18 text-[var(--text)] mb-2" />
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {categories.map((c) => (
-              <span key={c} className={chip(preview.category === c)} style={{ padding: '4px 10px' }} onClick={() => setPreview({ ...preview, category: c })}>{c}</span>
+      {previews.length > 0 && (
+        <>
+          {error && <p className="text-sc-15 text-[var(--danger)] mb-2">{error}</p>}
+          <div className="flex flex-col gap-2.5 mb-2 max-h-[420px] overflow-auto">
+            {previews.map((p) => (
+              <div key={p.id} className="bg-[var(--bg)]/30 rounded-lg p-3 relative">
+                <button onClick={() => removePreview(p.id)} aria-label="Remove" className="absolute top-2 right-2 text-[var(--muted)] hover:text-[var(--danger)]">✕</button>
+                <div className="flex items-center gap-2 mb-2 pr-6">
+                  <IconReceipt size={20} className="text-[var(--accent)]" />
+                  <span className="text-sc-20 font-semibold text-[var(--text)]">{fmt(p.amount)}</span>
+                </div>
+                <input
+                  value={p.description}
+                  onChange={(e) => updatePreview(p.id, { description: e.target.value })}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1.5 text-sc-16 text-[var(--text)] mb-2"
+                />
+                <input
+                  type="date"
+                  value={p.date}
+                  onChange={(e) => updatePreview(p.id, { date: e.target.value })}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1.5 text-sc-15 text-[var(--text)] mb-2"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {categories.map((c) => (
+                    <span key={c} className={chip(p.category === c)} style={{ padding: '4px 10px' }} onClick={() => updatePreview(p.id, { category: c })}>{c}</span>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-          <button onClick={confirm} className="w-full bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2 text-sc-18 font-medium">Add transaction</button>
-        </div>
+          <div className="flex gap-2">
+            <button onClick={confirmAll} className="flex-1 bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2 text-sc-18 font-medium">
+              Add {previews.length} transaction{previews.length === 1 ? '' : 's'}
+            </button>
+            <button onClick={() => fileRef.current?.click()} className="text-[var(--muted)] text-sc-15 px-2">+ More</button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && e.target.files.length > 0 && handleFiles(Array.from(e.target.files))}
+            />
+          </div>
+        </>
       )}
     </div>
   );

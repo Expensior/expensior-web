@@ -232,13 +232,41 @@ related is broken.**
   report): inline edit form matching the category-rename pattern.
 
 ### Explicitly deferred (do not build unless asked)
-- Mobile responsive layout — user said explicitly: "after fixing current
-  desktop issues." Confirmed broken early in the build, untouched since.
-- Right-click context menu / page-capture content script — **this is a
-  DIFFERENT CODEBASE** (the Chrome extension: manifest.json, background.js,
-  content.js), not this Next.js repo. User asked for this to be built; it was
-  not started because it requires switching to a different artifact entirely.
-  This is the single largest deferred item.
+- Mobile responsive layout — **this entry is now stale as written below, left
+  for history**: portrait mobile WAS built in a later session turn than when
+  this note was first written (Ledger as a slide-in drawer, bottom tab bar,
+  responsive FAB positioning — see the "Built, structurally sound" section
+  above for the actual current status, which is "built, never seen on a real
+  device or resized browser"). Landscape orientation specifically was never
+  addressed and remains genuinely unbuilt.
+- Right-click context menu / page-capture (browser extension) — **deliberately
+  put on hold, not just unstarted**. This is a genuinely different codebase
+  (Manifest V3 extension: manifest.json, background service worker, content
+  script), and a real architecture discussion happened before deciding to
+  hold off — worth preserving the reasoning rather than just the outcome:
+  - The feature was originally scoped as two distinct mechanisms: right-click
+    on selected text (small permission footprint — `activeTab` is enough),
+    and a floating "capture from this page" auto-detect prompt (needs much
+    broader host permissions running across most sites the person visits).
+  - Decided against building either for now because: (1) even though the
+    developer is the primary user, the app may be tried by less technical
+    people, and asking them to grant broad cross-site permissions for a
+    feature this niche is a bad trust ask relative to the app's current
+    scale; (2) **mobile browsers don't support extension APIs at all** —
+    Chrome for Android has no equivalent to context menus or content
+    scripts, and there's no "right-click and select text" gesture on touch
+    devices anyway. This was never going to be a build-once feature; it
+    would always be desktop-only, which is a platform inconsistency not
+    worth taking on yet.
+  - **If this gets revisited later**: the original design intent (found by
+    searching the early ideation transcript, not re-derived) had the
+    right-click/capture features explicitly NEVER appearing as a tile in the
+    FAB hub — they're a genuinely different surface, discovered by browsing,
+    not advertised inside the app's own UI. Duplicate-detection between the
+    two mechanisms (and against manual entry) was planned via a fingerprint
+    check (merchant + amount + same day), the same concept already used for
+    bulk import deduplication, rather than trying to suppress one trigger in
+    favor of the other.
 
 ### Backlog, not expected yet
 Occasion intelligence, "Future Me" letter, peer benchmarks, WhatsApp Business
@@ -452,6 +480,103 @@ confirmation. **Verify all of these live before considering them closed.**
   through explicitly for that specific computed value, since the existing
   pairing was only ever validated against the base variables it was
   designed for.
+
+- **Scan: multi-select and date visibility (this session)**: two real gaps
+  fixed. The file input only ever processed `e.target.files?.[0]` — the
+  first file, even if multiple were selected, especially painful on mobile
+  where the native picker naturally offers multi-select. Rewired to
+  `multiple` on the input, processing every selected file in parallel via
+  `Promise.all`, with per-file failures skipped individually rather than
+  failing the whole batch (shows "Read 3 of 4 images — 1 couldn't be
+  parsed" rather than an all-or-nothing error). Second: the review card
+  captured `date` from the scan result but never displayed or let you edit
+  it — amount, description, and category were all visible, date silently
+  wasn't, so a misread date from OCR had no way to be caught before adding.
+  Added an actual `<input type="date">` per result. Rebuilt the whole
+  preview flow around the same `{amount, description, category,
+  indulgence, date, selected}`-shaped list already used by `SmsView` and
+  `GmailView` (via `onBulkAdd`) rather than the old single-`onAdd` shape,
+  so multiple scanned receipts now show as a stack of independently
+  editable cards (each with its own remove button) with one "Add N
+  transactions" button at the bottom, plus a "+ More" to keep scanning
+  without losing what's already been read. Compiled clean, including
+  TypeScript validating the reshaped props against `EntryFab`'s existing
+  bulk-add plumbing — not yet tested against a real multi-image selection
+  on an actual phone.
+
+- **Full WCAG contrast audit — COMPLETE, all 187 checks passing (this
+  session)**: after the
+  Feature Guide legibility bug, did a genuinely rigorous audit rather than
+  spot-checking further instances by eye. Grepped every `text-[var(--X)]`
+  and inline `color: var(--X)` usage across the whole codebase (334 raw
+  occurrences), verified the actual container nesting for each (not
+  assumed — e.g. confirmed every `bg-[var(--bg)]/NN` opacity variant is
+  nested inside a `bg-[var(--surface)]` parent, requiring proper alpha-blend
+  math, not a flat comparison), and computed real WCAG 2.1 contrast ratios
+  (formula validated against known reference values — black/white = 21.0,
+  the classic `#767676`-on-white ≈ 4.5 case — before trusting it on real
+  theme data) for 17 distinct real pairings across all 11 themes.
+  **Result: 106 of 187 checks failed.** Three headline findings: `text` was
+  perfect everywhere (11/11 on every background, zero changes needed);
+  `danger` on `surface` failed in literally all 11 themes (not
+  theme-specific — a systemic miss); primary buttons (`bg`-on-`accent`)
+  failed in 6 of 11 themes.
+  **Impact analysis, not a guess**: tallied failures attributable to each
+  variable as the foreground — `muted` accounted for 44 of 106 (more than
+  accent+danger+positive+button-text combined). Checked feasibility before
+  proposing a fix: for every one of the 11 themes, either pure black or
+  pure white already cleared 4.5:1 against both `bg` and `surface`
+  simultaneously, proving a fix was achievable, not just hoped-for.
+  **Fix applied**: binary-searched the minimum shift (toward black or white,
+  whichever direction was feasible per theme) that clears 4.5:1 against
+  both backgrounds, for all 11 themes' `--muted` value. First pass left 3
+  themes failing by a hair (dusty-rose 4.49, cosmic-aurora 4.48, watermelon-
+  sorbet 4.50) — traced to hex-rounding tipping a razor-thin 4.50 target
+  back under the line after discretizing to the nearest achievable 8-bit
+  color. Recomputed those three with a 4.55 buffer specifically to absorb
+  that rounding error, then reverified against the actual rounded hex
+  values (not the pre-rounding float) this time. Final state: all 55
+  muted-related checks (11 themes × 5 backgrounds it actually appears
+  against) pass, worst case 4.504:1.
+  **Then applied the same process to `danger`, `positive`, and `accent`,
+  and found one genuine mathematical infeasibility along the way**: for
+  autumn-harvest, `accent` needs to satisfy three simultaneous constraints
+  (contrast against `bg`, against `surface`, AND against its own 15%-tint
+  blend used for the active filter chip) — and neither pure black nor pure
+  white could satisfy all three at once. Diagnosed precisely rather than
+  guessing around it: even pure white only reached 4.10 against its own
+  blend, short of 4.5, because the blend is 85% surface and surface itself
+  is fixed — no amount of adjusting accent alone could fix a formula where
+  85% of the comparison background doesn't move. Fix: reduced the active
+  filter chip's blend from 15% accent to 10% (`Ledger.tsx`), which
+  mathematically can only make this specific constraint *easier* everywhere
+  (a lower blend percentage pulls the background closer to the pure-surface
+  case, which was already passing in all 11 themes) — confirmed this
+  before applying it, not assumed. One large, real visual consequence
+  worth knowing about: autumn-harvest's `--accent` had to shift essentially
+  all the way to white (`#C15C3D` → `#FFFFFF`) to satisfy all three
+  constraints — not a subtle tweak, a dramatic color change for that one
+  theme specifically, and the computed, unavoidable cost of the fix rather
+  than an artifact of the method.
+  **A design-intent side effect worth flagging**: watermelon-sorbet's
+  `globals.css` comment originally noted `--danger` and `--accent`
+  deliberately shared the same value ("this palette already contains a
+  genuinely red-leaning color, so it does double duty as both"). Fixing
+  each variable against its own distinct set of constraints gave them
+  different values (danger → `#7A2534`, accent → `#6B202E`) — breaking that
+  original shared-color intent. This is a reasonable, expected side effect
+  of fixing each variable rigorously and independently, not a mistake, but
+  worth knowing if anyone revisits that theme's original authoring comment.
+  **Final result, fully reverified across all 17 pairings and all 11
+  themes**: 0 of 187 checks failing. Every text/background and
+  button-fill pairing identified in the audit now passes WCAG AA.
+  **A real, honest caveat about scope, still true**: this entire audit
+  covered text and button-fill contrast (WCAG 1.4.3) only. It did NOT apply
+  the separate non-text/UI-component contrast standard (WCAG 1.4.11, 3:1
+  minimum) to category dots, borders, or other non-text colored elements —
+  that's a distinct check with its own formula application, not yet done,
+  and would need the same rigor applied fresh rather than assumed to be
+  fine just because the text-contrast pass is now clean.
 
 - **Feature guide (this session)**: recovered from the ORIGINAL Chrome
   extension's `popup.js`, which had an onboarding "feature guide" — a

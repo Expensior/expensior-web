@@ -4,11 +4,11 @@
   --bg: #1D2C3E;
   --surface: #355070;
   --border: #6D597A;
-  --accent: #B56576;
-  --danger: #E56B6F;
-  --positive: #EAAC8B;
+  --accent: #E7CDD3;
+  --danger: #F1AFB1;
+  --positive: #ECB496;
   --text: #FAF7F2;
-  --muted: #BDB4C3;
+  --muted: #C5BDCA;
   --cat-1: color-mix(in srgb, var(--accent), white 18%);
   --cat-2: color-mix(in srgb, var(--danger), black 22%);
   --cat-3: color-mix(in srgb, var(--positive), black 15%);
@@ -60,11 +60,11 @@ input[type="number"] {
   --bg: #E0FBFC;
   --surface: #98C1D9;
   --border: #3D5A80;
-  --accent: #3D5A80;
-  --danger: #9B2226;
+  --accent: #2E4460;
+  --danger: #902023;
   --positive: #293241;
   --text: #293241;
-  --muted: #84979E;
+  --muted: #444D51;
 }
 
 /* Autumn harvest — this palette's lightest color (Mustard Gold) is only
@@ -76,11 +76,11 @@ input[type="number"] {
   --bg: #283618;
   --surface: #606C38;
   --border: #C15C3D;
-  --accent: #C15C3D;
-  --danger: #E28743;
-  --positive: #D4A373;
+  --accent: #FFFFFF;
+  --danger: #F8E2D2;
+  --positive: #F2E4D6;
   --text: #F3E6D3;
-  --muted: #B9AE8F;
+  --muted: #E8E5DB;
 }
 
 /* Spring awakening — the softest of the four; none of its five colors is
@@ -91,11 +91,11 @@ input[type="number"] {
   --bg: #F7F4EA;
   --surface: #FFCAD4;
   --border: #98D8C8;
-  --accent: #B58A8A;
-  --danger: #FFCAD4;
-  --positive: #A3B19B;
+  --accent: #684F4F;
+  --danger: #6F585C;
+  --positive: #586054;
   --text: #3F3030;
-  --muted: #9B928D;
+  --muted: #635D5A;
 }
 
 /* Midsummer radiance — dark, energetic. Only Midnight Navy is genuinely
@@ -107,10 +107,10 @@ input[type="number"] {
   --surface: color-mix(in srgb, #073B4C, white 12%);
   --border: #FF6B6B;
   --accent: #FFD166;
-  --danger: #FF6B6B;
-  --positive: #06D6A0;
+  --danger: #FFA6A6;
+  --positive: #0CD7A2;
   --text: #FFADAD;
-  --muted: color-mix(in srgb, #FFADAD, #073B4C 55%);
+  --muted: #BFBCC0;
 }
 
 /* Monsoon and earth — dark, muted. No color in this set reads as an
@@ -121,11 +121,11 @@ input[type="number"] {
   --bg: #38220F;
   --surface: #4A5D4E;
   --border: #B07D62;
-  --accent: #DDB892;
-  --danger: #B07D62;
-  --positive: #7F8C8D;
+  --accent: #F2E3D4;
+  --danger: #E0CBC1;
+  --positive: #CBD0D1;
   --text: color-mix(in srgb, #DDB892, white 35%);
-  --muted: color-mix(in srgb, var(--text), var(--bg) 55%);
+  --muted: #D5CDC5;
 }
 
 /* Cosmic aurora — dark. This set is entirely cool (purple, cyan, teal,
@@ -137,10 +137,10 @@ input[type="number"] {
   --surface: #1F2833;
   --border: color-mix(in srgb, #1F2833, white 15%);
   --accent: #66FCF1;
-  --danger: #E85A6B;
+  --danger: #E96171;
   --positive: #45A29E;
   --text: #C5C6C7;
-  --muted: color-mix(in srgb, #C5C6C7, #0B0C10 45%);
+  --muted: #8D8E90;
 }
 
 /* Smoked obsidian — dark. Every given color is a shade of amber/brown,
@@ -151,10 +151,10 @@ input[type="number"] {
   --surface: #2D1E1E;
   --border: color-mix(in srgb, #2D1E1E, white 15%);
   --accent: #FF9F1C;
-  --danger: #D64545;
+  --danger: #DC6262;
   --positive: #FFBF69;
   --text: #F6F6F6;
-  --muted: color-mix(in srgb, #F6F6F6, #121212 45%);
+  --muted: #8F8F8F;
 }
 
 /* Coastal breeze — light. No color in this set is red-leaning, so
@@ -163,11 +163,11 @@ input[type="number"] {
   --bg: #e7f6ff;
   --surface: #9ad9ea;
   --border: #2f9bb3;
-  --accent: #2f9bb3;
-  --danger: #E2574C;
-  --positive: #f4e6cc;
+  --accent: #1A5765;
+  --danger: #973A33;
+  --positive: #5D584E;
   --text: #1f3a5f;
-  --muted: color-mix(in srgb, #1f3a5f, #e7f6ff 55%);
+  --muted: #4F5A66;
 }
 
 /* Citrus splash — light. No color in this set is red-leaning, so
@@ -176,11 +176,11 @@ input[type="number"] {
   --bg: #fff1b8;
   --surface: #ffd166;
   --border: #ff8c42;
-  --accent: #ff8c42;
-  --danger: #E14D4D;
-  --positive: #2ec4b6;
+  --accent: #7F4621;
+  --danger: #A43838;
+  --positive: #186861;
   --text: #0b1320;
-  --muted: color-mix(in srgb, #0b1320, #fff1b8 55%);
+  --muted: #615E4D;
 }
 
 /* Watermelon sorbet — light. Unlike most of the others, this palette
@@ -191,11 +191,11 @@ input[type="number"] {
   --bg: #ffe5ec;
   --surface: #ff8fab;
   --border: #ff4d6d;
-  --accent: #ff4d6d;
-  --danger: #ff4d6d;
-  --positive: #2fdc7a;
+  --accent: #6B202E;
+  --danger: #7A2534;
+  --positive: #114E2B;
   --text: #1f2937;
-  --muted: color-mix(in srgb, #1f2937, #ffe5ec 55%);
+  --muted: #474247;
 }
 
 body {
