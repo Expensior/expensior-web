@@ -481,6 +481,52 @@ confirmation. **Verify all of these live before considering them closed.**
   pairing was only ever validated against the base variables it was
   designed for.
 
+- **Ledger highlight boxes: hardcoded white text, genuinely broken in most
+  themes (this session)**: found via three new screenshots showing the
+  "Biggest expense" and "Most frequent" boxes rendering completely blank in
+  some themes, barely-legible in others. Root cause, confirmed by reading
+  the code: the three highlight boxes (`Biggest expense` on `var(--accent)`,
+  `Most frequent` on whichever `--cat-N` the top category maps to,
+  `Busiest day` on `var(--border)`) all used hardcoded
+  `rgba(255,255,255,...)` text. This is a DIFFERENT, previously-unaudited
+  claim from the earlier WCAG pass — that pass tuned `--accent` to contrast
+  against `--bg` (whatever color that is per theme), never against literal
+  white. In dark-background themes specifically, `--accent` is naturally
+  chosen to be light/bright to pop against a dark `--bg` — and white text on
+  a light accent color is exactly the near-invisible result in the
+  screenshots.
+  **Computed properly rather than guessed**: checked literal white against
+  all 7 relevant backgrounds (accent, border, cat-1 through cat-5) across
+  all 11 themes — 77 checks, 46 failures. Root cause: hardcoded white can
+  never reliably work against a background that varies by both theme and
+  category.
+  **Fix**: added explicit `--on-accent`, `--on-border`, `--on-cat-1` through
+  `--on-cat-5` CSS variables to every theme (each set to whichever of white
+  or a near-black `#1A1A1A` actually clears 4.5:1 for that specific
+  background), plus a parallel `ON_CAT_COLORS` mapping in `categories.ts`.
+  Four combinations had NEITHER white nor dark clear the bar (background too
+  medium-lightness for either extreme) — resolved by nudging the underlying
+  background derivation itself (autumn-harvest's `--border` darkened 3%;
+  cosmic-aurora's and smoked-obsidian's `--cat-4`, and cosmic-aurora's
+  `--cat-3`, given theme-specific formula overrides rather than changing the
+  shared global formula, which would have risked breaking other themes that
+  currently pass at the default percentage). Reverified all 77 combinations
+  pass after these adjustments.
+  **A second bug caught before shipping, not after**: the first version kept
+  the title/caption text at reduced opacity for visual hierarchy (title
+  faint, value bold, caption faint — mirroring the original design). Testing
+  the tightest-margin on-color choices at that reduced opacity showed the
+  fade alone was enough to drop contrast back under 4.5:1 on several
+  borderline cases (e.g., 4.56 full-strength dropping to 3.28 at 25%
+  transparent) — meaning correct math at full strength doesn't survive
+  being faded. Fixed by giving title/caption/value all identical full-
+  strength on-color; visual hierarchy now comes from size/weight only
+  (already present), not opacity. The decorative icon keeps its faded
+  opacity and was deliberately left alone — WCAG 1.4.11's non-text contrast
+  standard explicitly exempts purely decorative graphics that don't convey
+  information beyond what's already in the text, which applies here since
+  the icon is just a background flourish duplicating the box's own label.
+
 - **Gmail scan: missing recent emails and repeated duplicates, both fixed
   (this session)**: two real, user-reported bugs, both traced to the actual
   code rather than guessed at.

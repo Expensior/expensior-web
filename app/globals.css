@@ -15,6 +15,13 @@
   --cat-4: color-mix(in srgb, var(--border), white 30%);
   --cat-5: color-mix(in srgb, color-mix(in srgb, var(--accent), var(--danger) 45%), black 12%);
   --text-offset: 0px;
+  --on-accent: #1A1A1A;
+  --on-border: white;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: #1A1A1A;
+  --on-cat-3: #1A1A1A;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Text size preference — additive, not multiplicative. A multiplier would
@@ -79,6 +86,13 @@ input[type="number"] {
   --positive: #293241;
   --text: #293241;
   --muted: #444D51;
+  --on-accent: white;
+  --on-border: white;
+  --on-cat-1: white;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: white;
 }
 
 /* Autumn harvest — this palette's lightest color (Mustard Gold) is only
@@ -89,12 +103,19 @@ input[type="number"] {
 [data-theme="autumn-harvest"] {
   --bg: #283618;
   --surface: #606C38;
-  --border: #C15C3D;
+  --border: #BB593B;
   --accent: #FFFFFF;
   --danger: #F8E2D2;
   --positive: #F2E4D6;
   --text: #F3E6D3;
   --muted: #E8E5DB;
+  --on-accent: #1A1A1A;
+  --on-border: white;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: #1A1A1A;
+  --on-cat-3: #1A1A1A;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Spring awakening — the softest of the four; none of its five colors is
@@ -110,6 +131,13 @@ input[type="number"] {
   --positive: #586054;
   --text: #3F3030;
   --muted: #635D5A;
+  --on-accent: white;
+  --on-border: #1A1A1A;
+  --on-cat-1: white;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: white;
 }
 
 /* Midsummer radiance — dark, energetic. Only Midnight Navy is genuinely
@@ -125,6 +153,13 @@ input[type="number"] {
   --positive: #0CD7A2;
   --text: #FFADAD;
   --muted: #BFBCC0;
+  --on-accent: #1A1A1A;
+  --on-border: #1A1A1A;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: #1A1A1A;
+  --on-cat-3: #1A1A1A;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Monsoon and earth — dark, muted. No color in this set reads as an
@@ -140,6 +175,13 @@ input[type="number"] {
   --positive: #CBD0D1;
   --text: color-mix(in srgb, #DDB892, white 35%);
   --muted: #D5CDC5;
+  --on-accent: #1A1A1A;
+  --on-border: #1A1A1A;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: #1A1A1A;
+  --on-cat-3: #1A1A1A;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Cosmic aurora — dark. This set is entirely cool (purple, cyan, teal,
@@ -155,6 +197,15 @@ input[type="number"] {
   --positive: #45A29E;
   --text: #C5C6C7;
   --muted: #8D8E90;
+  --cat-3: color-mix(in srgb, var(--positive), black 25%);
+  --cat-4: color-mix(in srgb, var(--border), white 40%);
+  --on-accent: #1A1A1A;
+  --on-border: white;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Smoked obsidian — dark. Every given color is a shade of amber/brown,
@@ -169,6 +220,14 @@ input[type="number"] {
   --positive: #FFBF69;
   --text: #F6F6F6;
   --muted: #8F8F8F;
+  --cat-4: color-mix(in srgb, var(--border), white 40%);
+  --on-accent: #1A1A1A;
+  --on-border: white;
+  --on-cat-1: #1A1A1A;
+  --on-cat-2: white;
+  --on-cat-3: #1A1A1A;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: #1A1A1A;
 }
 
 /* Coastal breeze — light. No color in this set is red-leaning, so
@@ -182,6 +241,13 @@ input[type="number"] {
   --positive: #5D584E;
   --text: #1f3a5f;
   --muted: #4F5A66;
+  --on-accent: white;
+  --on-border: #1A1A1A;
+  --on-cat-1: white;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: white;
 }
 
 /* Citrus splash — light. No color in this set is red-leaning, so
@@ -195,6 +261,13 @@ input[type="number"] {
   --positive: #186861;
   --text: #0b1320;
   --muted: #615E4D;
+  --on-accent: white;
+  --on-border: #1A1A1A;
+  --on-cat-1: white;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: white;
 }
 
 /* Watermelon sorbet — light. Unlike most of the others, this palette
@@ -210,6 +283,13 @@ input[type="number"] {
   --positive: #114E2B;
   --text: #1f2937;
   --muted: #474247;
+  --on-accent: white;
+  --on-border: #1A1A1A;
+  --on-cat-1: white;
+  --on-cat-2: white;
+  --on-cat-3: white;
+  --on-cat-4: #1A1A1A;
+  --on-cat-5: white;
 }
 
 body {
