@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { IconSettings, IconPencil, IconMenu2, IconChevronLeft } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
@@ -43,6 +43,22 @@ export default function App() {
   const supabase = createClient();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const knownMerchants = useMemo(() => {
+    const counts = new Map<string, number>();
+    transactions.forEach((t) => {
+      const name = t.description.trim();
+      if (!name) return;
+      // Merchant names can appear with different casing/whitespace across
+      // sources (manual entry, Gmail, SMS) -- count by a normalized key but
+      // recover the actual casing from a real transaction for display,
+      // rather than showing the lowercased key itself.
+      counts.set(name.toLowerCase(), (counts.get(name.toLowerCase()) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1]) // most-used first
+      .map(([key]) => transactions.find((t) => t.description.trim().toLowerCase() === key)?.description.trim() || key);
+  }, [transactions]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [categoryRecords, setCategoryRecords] = useState<Category[]>([]);
   const [monthlyPot, setMonthlyPot] = useState<number | null>(null);
@@ -603,6 +619,7 @@ export default function App() {
         hasApiKey={!!apiKey}
         gmailConnected={gmailConnected}
         ledgerOpen={ledgerOpen}
+        knownMerchants={knownMerchants}
         onAdd={addTransaction}
         onBulkAdd={bulkAddTransactions}
         onLogRecurring={logRecurring}
@@ -612,6 +629,7 @@ export default function App() {
         <EditTransactionModal
           categories={categories}
           editingTxn={editingTxn}
+          knownMerchants={knownMerchants}
           onCancelEdit={() => setEditingTxn(null)}
           onUpdate={updateTransaction}
           onDelete={deleteTransaction}

@@ -102,7 +102,7 @@ export default function Dashboard({
             <SegmentedTabs tabs={section.tabs} active={currentSub} onChange={(k) => setActiveSub((prev) => ({ ...prev, [section.key]: k }))} />
           </div>
         )}
-        <div className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-auto min-w-0">
+        <div className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden min-w-0">
           {currentSub === 'overview' && <Overview allTransactions={allTransactions} onSelectCategory={onSelectCategory} streak={streak} lastVisitedAt={lastVisitedAt} hasApiKey={hasApiKey} insightCards={insightCards} insightsGeneratedAt={insightsGeneratedAt} generatingInsights={generatingInsights} insightsError={insightsError} onGenerateInsights={onGenerateInsights} />}
           {currentSub === 'patterns' && <Patterns allTransactions={allTransactions} monthlyPot={monthlyPot} />}
           {currentSub === 'trends' && <Trends allTransactions={allTransactions} />}

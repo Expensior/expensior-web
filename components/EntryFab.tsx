@@ -9,6 +9,7 @@ import { parseQuickAdd, parseBulkText, todayStr, fmt, parseCsv, autoDetectCsvCol
 import { guessCategory } from '@/lib/categories';
 import { createClient } from '@/lib/supabase/client';
 import { smartCategorize } from '@/lib/smartCategorize';
+import MerchantAutocomplete from './MerchantAutocomplete';
 import type { NewTransaction, RecurringTemplate } from '@/lib/types';
 
 type View = 'hub' | 'type' | 'voice' | 'sms' | 'scan' | 'gmail';
@@ -24,6 +25,7 @@ export default function EntryFab({
   hasApiKey,
   gmailConnected,
   ledgerOpen,
+  knownMerchants,
   onAdd,
   onBulkAdd,
   onLogRecurring,
@@ -33,6 +35,7 @@ export default function EntryFab({
   hasApiKey: boolean;
   gmailConnected: boolean;
   ledgerOpen: boolean;
+  knownMerchants: string[];
   onAdd: (t: NewTransaction) => Promise<void>;
   onBulkAdd: (items: NewTransaction[]) => Promise<void>;
   onLogRecurring: (template: RecurringTemplate) => Promise<void>;
@@ -111,7 +114,7 @@ export default function EntryFab({
           )}
 
           {view === 'type' && (
-            <TypeView categories={categories} onBack={() => setView('hub')} onAdd={onAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
+            <TypeView categories={categories} knownMerchants={knownMerchants} onBack={() => setView('hub')} onAdd={onAdd} onDone={(msg) => { flashToast(msg); closeAll(); }} />
           )}
           {/* Voice input disabled — see note above the Voice tile in the hub grid */}
           {/* {view === 'voice' && (
@@ -181,7 +184,7 @@ function BackHeader({ label, onBack }: { label: string; onBack: () => void }) {
   );
 }
 
-function TypeView({ categories, onBack, onAdd, onDone }: { categories: string[]; onBack: () => void; onAdd: (t: NewTransaction) => Promise<void>; onDone: (msg: string) => void }) {
+function TypeView({ categories, knownMerchants, onBack, onAdd, onDone }: { categories: string[]; knownMerchants: string[]; onBack: () => void; onAdd: (t: NewTransaction) => Promise<void>; onDone: (msg: string) => void }) {
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick');
   const [text, setText] = useState('');
   const [preview, setPreview] = useState<{ amount: number; description: string; category: string; indulgence: boolean; date: string } | null>(null);
@@ -239,7 +242,12 @@ function TypeView({ categories, onBack, onAdd, onDone }: { categories: string[];
             <div className="bg-[var(--bg)]/30 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sc-22 font-semibold text-[var(--text)]">{fmt(preview.amount)}</span>
-                <input value={preview.description} onChange={(e) => setPreview({ ...preview, description: e.target.value })} className="flex-1 bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1 text-sc-18 text-[var(--text)]" />
+                <MerchantAutocomplete
+                  value={preview.description}
+                  onChange={(v) => setPreview({ ...preview, description: v })}
+                  merchants={knownMerchants}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1 text-sc-18 text-[var(--text)]"
+                />
               </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {categories.map((c) => (
@@ -261,7 +269,13 @@ function TypeView({ categories, onBack, onAdd, onDone }: { categories: string[];
         <form onSubmit={confirmDetailed}>
           <div className="flex gap-2 mb-2">
             <input type="number" placeholder="Amount" value={detail.amount || ''} onChange={(e) => setDetail({ ...detail, amount: parseFloat(e.target.value) || 0 })} className="w-24 bg-[var(--bg)]/40 border border-[var(--border)]/50 rounded-lg px-2 py-2 text-sc-20 text-[var(--text)]" />
-            <input placeholder="Description" value={detail.description} onChange={(e) => setDetail({ ...detail, description: e.target.value })} className="flex-1 bg-[var(--bg)]/40 border border-[var(--border)]/50 rounded-lg px-2 py-2 text-sc-20 text-[var(--text)]" />
+            <MerchantAutocomplete
+              value={detail.description}
+              onChange={(v) => setDetail({ ...detail, description: v })}
+              merchants={knownMerchants}
+              placeholder="Description"
+              className="w-full bg-[var(--bg)]/40 border border-[var(--border)]/50 rounded-lg px-2 py-2 text-sc-20 text-[var(--text)]"
+            />
           </div>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {categories.map((c) => (
@@ -503,7 +517,7 @@ function SmsView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { categor
       {candidates && (
         <>
           {candidates.length === 0 && <p className="text-sc-18 text-[var(--muted)]">No amounts found.</p>}
-          <div className="flex flex-col gap-1.5 mb-2 max-h-[340px] overflow-auto">
+          <div className="flex flex-col gap-1.5 mb-2 max-h-[340px] overflow-y-auto overflow-x-hidden">
             {candidates.map((c, i) => (
               <label key={i} className="flex items-center gap-2 bg-[var(--bg)]/30 rounded-lg px-2.5 py-2 cursor-pointer">
                 <input type="checkbox" checked={c.selected} onChange={() => setCandidates(candidates.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
@@ -637,7 +651,7 @@ function ScanView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { catego
       {previews.length > 0 && (
         <>
           {error && <p className="text-sc-15 text-[var(--danger)] mb-2">{error}</p>}
-          <div className="flex flex-col gap-2.5 mb-2 max-h-[420px] overflow-auto">
+          <div className="flex flex-col gap-2.5 mb-2 max-h-[420px] overflow-y-auto overflow-x-hidden">
             {previews.map((p) => (
               <div key={p.id} className="bg-[var(--bg)]/30 rounded-lg p-3 relative">
                 <button onClick={() => removePreview(p.id)} aria-label="Remove" className="absolute top-2 right-2 text-[var(--muted)] hover:text-[var(--danger)]">✕</button>
@@ -778,7 +792,7 @@ function GmailView({
       {candidates && (
         <>
           {candidates.length === 0 && <p className="text-sc-18 text-[var(--muted)]">No receipt-like emails found in the last 30 days.</p>}
-          <div className="flex flex-col gap-1.5 mb-2 max-h-[340px] overflow-auto">
+          <div className="flex flex-col gap-1.5 mb-2 max-h-[340px] overflow-y-auto overflow-x-hidden">
             {candidates.map((c, i) => (
               <label key={i} className="flex items-center gap-2 bg-[var(--bg)]/30 rounded-lg px-2.5 py-2 cursor-pointer">
                 <input type="checkbox" checked={c.selected} onChange={() => setCandidates(candidates.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />

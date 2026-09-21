@@ -481,6 +481,106 @@ confirmation. **Verify all of these live before considering them closed.**
   pairing was only ever validated against the base variables it was
   designed for.
 
+- **Gmail scan: missing recent emails and repeated duplicates, both fixed
+  (this session)**: two real, user-reported bugs, both traced to the actual
+  code rather than guessed at.
+  **Missing recent emails**: the search used a multi-OR-clause query
+  (`receipt OR invoice OR "order confirmed" OR ...`) capped at
+  `maxResults=15` with no explicit sort. Gmail's search ranking for queries
+  with a `q` parameter blends relevance with recency, not pure chronological
+  order — a genuinely recent email with a weaker keyword match can rank
+  below an older, stronger match, and a small result cap makes it easy for
+  that to push recent emails out entirely before they're ever fetched. Fixed
+  by raising the pool to `maxResults=40` and explicitly sorting the fetched
+  results by actual `internalDate` (already being extracted per-message,
+  just never used for ordering) rather than trusting Gmail's returned order.
+  **Repeated duplicates**: there was no deduplication at all. The search
+  window (`newer_than:30d`) is rolling — an email from 10 days ago still
+  matches on every scan for the next 20 days, and with nothing comparing
+  against existing transactions, the same email resurfaced as "new" every
+  time. Fixed by querying the user's own transactions in the same date
+  window and filtering out any candidate matching an existing transaction
+  by amount + date + merchant-name overlap.
+  **A real bug caught by testing the dedup logic before shipping it**: the
+  first version matched merchant names via an exact-match hash key
+  (normalized text, truncated to 20 characters). Test case "HungerBox" vs.
+  "HungerBox - Office Cafeteria" — obviously the same real merchant —
+  failed to match, because exact-match on a truncated string doesn't do
+  substring matching; it only works when both strings happen to be
+  byte-identical in their first 20 characters, which doesn't hold when the
+  same merchant appears with different-length descriptions across sources
+  (a very normal, expected situation, not an edge case). Fixed by switching
+  to bidirectional substring matching (`a.includes(b) || b.includes(a)` on
+  normalized text) grouped by exact amount+date first for efficiency.
+  Reverified with the corrected logic, including a harder case (two
+  existing transactions sharing the same amount+date, only one actually
+  matching) to confirm the fix doesn't just work on the simple case.
+
+- **Merchant autocomplete (this session)**: as you type a merchant name,
+  suggestions now appear from your own transaction history — no new data
+  source needed, `allTransactions` was already loaded in `App.tsx`.
+  `knownMerchants` is a frequency-ranked, deduplicated (case-insensitive,
+  whitespace-trimmed) list computed once via `useMemo`, threaded into three
+  places: the Quick-add preview and Detailed-mode description fields in
+  `EntryFab.tsx`, and the edit-transaction modal in `EntryZone.tsx`. Built
+  as one reusable component (`MerchantAutocomplete.tsx`) rather than three
+  separate implementations. Matching logic: prefix matches first (typing
+  "sw" suggests "Swiggy"), falls back to substring matches so something
+  like "food" can still surface "Avatar Food Court", excludes suggesting
+  the exact thing already typed, capped at 5 results — all verified with
+  targeted test cases before wiring in, including the frequency-ranking
+  itself (mixed-case duplicates of the same merchant correctly collapse to
+  one entry, counted together). One real UI detail worth knowing if this
+  gets touched again: the dropdown uses `onMouseDown` with
+  `preventDefault()` rather than `onClick` for selecting a suggestion —
+  `onMouseDown` fires before the input's `onBlur`, so a click registers
+  before the dropdown would otherwise close out from under it; using
+  `onClick` here would have made selection unreliable. Compiles clean, not
+  yet tested against real typing in a live browser.
+
+- **Desktop text baseline lowered to match mobile's Compact (this
+  session)**: direct user feedback — mobile's Compact (A-) is the right
+  size, but that same absolute size felt too small when it was mobile's own
+  *default*, and desktop's default was rendering even larger than that.
+  `--text-offset` was previously a single global value regardless of screen
+  size (compact=-1px, default=0px, large=+3px, identical on mobile and
+  desktop). Added a `@media (min-width: 768px)` override — the same
+  breakpoint already used everywhere else in the app for the mobile/desktop
+  split — shifting the whole desktop scale down 1px uniformly: desktop
+  compact=-2px, default=-1px, large=+2px. This makes desktop's default
+  exactly equal to mobile's compact (verified: both resolve to offset -1,
+  not just visually similar), while leaving mobile completely untouched and
+  preserving the existing 1px/3px relative spacing between compact/default/
+  large on both screen sizes — only which absolute size counts as
+  "default" per device changed, not the relationship between the three
+  levels. The existing `max(8px, ...)` floor in every `.text-sc-N` rule
+  continues to protect against anything shrinking below 8px at the new,
+  more negative desktop offsets.
+
+- **Horizontal scroll removed entirely — confirmed on desktop too, not just
+  mobile (this session)**: the user's own diagnosis was exactly right and
+  matches what was found (but paused on, at their request) a few turns
+  earlier — the Ledger's transaction-list container used `overflow-auto`,
+  which enables scrolling on *both* axes. The `-mx-[18px]` bleed applied to
+  the sticky headers and rows (from the earlier background-coverage fix) is
+  deliberately wider than the container — that's the point, so the
+  background reaches the panel's true edge — but `overflow-auto` can't tell
+  "intentional cosmetic bleed" apart from "content the user needs to scroll
+  to see." It just saw width exceeding the container and offered a
+  scrollbar for it, even though nothing was actually cut off. Fixed by
+  splitting it into `overflow-y-auto overflow-x-hidden` — vertical scrolling
+  behaves identically, the bleed still visually reaches the edge, it just
+  can't be swiped/scrolled into as empty space anymore.
+  **Applied the same fix more broadly, not just to the one spot that
+  surfaced it**: grepped for every other `overflow-auto` in the codebase
+  (5 more — Dashboard's main content pane, three candidate-review lists in
+  `EntryFab.tsx`, and the transaction edit modal in `EntryZone.tsx`). None
+  of them use the specific bleed technique that caused the Ledger's
+  problem, but per the same general principle — there's no reason to leave
+  horizontal scroll *possible* anywhere it isn't actually needed — converted
+  all of them to the same `overflow-y-auto overflow-x-hidden` pattern as a
+  defensive pass, not because each was individually confirmed broken.
+
 - **Scan: multi-select and date visibility (this session)**: two real gaps
   fixed. The file input only ever processed `e.target.files?.[0]` — the
   first file, even if multiple were selected, especially painful on mobile

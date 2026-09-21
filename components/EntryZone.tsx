@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { NewTransaction, Transaction } from '@/lib/types';
+import MerchantAutocomplete from './MerchantAutocomplete';
 
 const chip = (active: boolean) =>
   `text-sc-13 px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
@@ -13,12 +14,14 @@ const TAGS = ['Celebration', 'Stress', 'Boredom', 'Social', 'Just wanted'];
 export default function EditTransactionModal({
   categories,
   editingTxn,
+  knownMerchants,
   onCancelEdit,
   onUpdate,
   onDelete,
 }: {
   categories: string[];
   editingTxn: Transaction;
+  knownMerchants: string[];
   onCancelEdit: () => void;
   onUpdate: (id: string, t: Partial<NewTransaction>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -65,7 +68,7 @@ export default function EditTransactionModal({
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 w-full max-w-sm shadow-lg max-h-[85vh] overflow-auto"
+        className="bg-[var(--surface)] border border-[var(--border)]/60 rounded-2xl p-4 w-full max-w-sm shadow-lg max-h-[85vh] overflow-y-auto overflow-x-hidden"
       >
         <p className="text-sc-12 text-[var(--muted)] mb-3">editing: {editingTxn.description} · {editingTxn.date}</p>
 
@@ -77,11 +80,12 @@ export default function EditTransactionModal({
             onChange={(e) => setDetail({ ...detail, amount: parseFloat(e.target.value) || 0 })}
             className="w-28 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sc-16 text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           />
-          <input
-            placeholder="Merchant / description"
+          <MerchantAutocomplete
             value={detail.description}
-            onChange={(e) => setDetail({ ...detail, description: e.target.value })}
-            className="flex-1 bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sc-16 text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            onChange={(v) => setDetail({ ...detail, description: v })}
+            merchants={knownMerchants}
+            placeholder="Merchant / description"
+            className="w-full bg-[var(--bg)]/50 border border-[var(--border)]/70 rounded-lg px-3 py-2 text-sc-16 text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
           />
         </div>
 

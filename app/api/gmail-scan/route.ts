@@ -19,6 +19,22 @@ function looksLikeNoise(text: string): boolean {
   return NOISE_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
+function normalizeMerchant(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Bidirectional substring check, not exact match -- merchant names for the
+// same real-world transaction often differ in length across sources
+// ("HungerBox" from one email vs "HungerBox - Office Cafeteria" from
+// another, or a manually-typed shorter version). An exact-match key would
+// wrongly treat these as different merchants and fail to catch the repeat.
+function isSameMerchant(a: string, b: string): boolean {
+  const na = normalizeMerchant(a);
+  const nb = normalizeMerchant(b);
+  if (!na || !nb) return false;
+  return na.includes(nb) || nb.includes(na);
+}
+
 export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -63,8 +79,16 @@ export async function POST() {
 
     const { access_token } = await tokenRes.json();
 
+    // Fetched pool increased from 15 to 40. Gmail's search ranking for a
+    // multi-OR-clause query blends relevance with recency, not pure
+    // chronological order -- a genuinely recent email with a weaker keyword
+    // match can rank below an older, stronger one. A small maxResults cap
+    // makes it easy for that ranking quirk to push recent emails out
+    // entirely before they're ever fetched. A bigger pool, explicitly
+    // re-sorted by actual date below, is the real fix -- not just a bigger
+    // number for its own sake.
     const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=${encodeURIComponent(SEARCH_QUERY)}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=40&q=${encodeURIComponent(SEARCH_QUERY)}`,
       { headers: { Authorization: `Bearer ${access_token}` } }
     );
     if (!listRes.ok) {
@@ -75,7 +99,7 @@ export async function POST() {
     const listData = await listRes.json();
     const messages: { id: string }[] = listData.messages || [];
 
-    const candidates: { amount: number; description: string; date: string }[] = [];
+    const rawCandidates: { amount: number; description: string; date: string; internalDate: number }[] = [];
 
     for (const msg of messages) {
       const msgRes = await fetch(
@@ -91,16 +115,49 @@ export async function POST() {
 
       if (looksLikeNoise(combined)) continue;
 
-      const date = msgData.internalDate
-        ? new Date(parseInt(msgData.internalDate)).toISOString().split('T')[0]
-        : undefined;
+      const internalDate = msgData.internalDate ? parseInt(msgData.internalDate) : 0;
+      const date = internalDate
+        ? new Date(internalDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
 
       const amount = extractAmountStrict(combined);
       if (amount) {
         const cleaned = extractMerchantDescription(subjectHeader) || subjectHeader.slice(0, 80);
-        candidates.push({ amount, description: cleaned.slice(0, 80), date: date || new Date().toISOString().split('T')[0] });
+        rawCandidates.push({ amount, description: cleaned.slice(0, 80), date, internalDate });
       }
     }
+
+    // Explicit sort by actual date, most recent first -- don't trust
+    // whatever order Gmail's search API happened to return.
+    rawCandidates.sort((a, b) => b.internalDate - a.internalDate);
+
+    // Dedup against transactions already added, so the same email doesn't
+    // resurface as "new" on every scan within the 30-day rolling window.
+    // Matches on amount + date + a normalized merchant-name overlap --
+    // amount+date alone could occasionally coincide for two genuinely
+    // different transactions, so the merchant check guards against
+    // wrongly suppressing a legitimate second transaction.
+    const windowStart = new Date();
+    windowStart.setDate(windowStart.getDate() - 31);
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('amount, description, date')
+      .eq('user_id', user.id)
+      .gte('date', windowStart.toISOString().split('T')[0]);
+
+    const existingKeys = new Map<string, { description: string }[]>();
+    (existing || []).forEach((t) => {
+      const key = `${t.amount}|${t.date}`;
+      if (!existingKeys.has(key)) existingKeys.set(key, []);
+      existingKeys.get(key)!.push({ description: t.description });
+    });
+
+    const candidates = rawCandidates
+      .filter((c) => {
+        const sameAmountAndDate = existingKeys.get(`${c.amount}|${c.date}`) || [];
+        return !sameAmountAndDate.some((e) => isSameMerchant(e.description, c.description));
+      })
+      .map(({ amount, description, date }) => ({ amount, description, date }));
 
     return NextResponse.json({ candidates });
   } catch (err) {

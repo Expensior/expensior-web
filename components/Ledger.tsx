@@ -320,7 +320,7 @@ export default function Ledger({
         </>
       )}
 
-      <div className="flex-1 overflow-auto -mx-1 px-1.5">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden -mx-1 px-1.5">
         {grouped.length === 0 && (
           <div className="text-center mt-10">
             <p className="text-sc-16 font-medium text-[var(--text)] mb-1">Nothing here yet</p>

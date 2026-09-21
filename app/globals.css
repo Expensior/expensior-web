@@ -24,6 +24,20 @@
 [data-text-size="compact"] { --text-offset: -1px; }
 [data-text-size="large"] { --text-offset: 3px; }
 
+/* Desktop needs a smaller baseline than mobile -- confirmed directly: mobile's
+   Compact (A-) is the right size, but that same absolute size reads as too
+   small when actually used as mobile's own default, let alone desktop's.
+   Shifting the whole desktop scale down 1px uniformly makes desktop's
+   Default match mobile's Compact exactly, while keeping the existing 1px/3px
+   relative spacing between Compact/Default/Large intact on both screen
+   sizes -- nothing about the RELATIONSHIP between the three levels changes,
+   only which absolute size counts as "default" on each device. */
+@media (min-width: 768px) {
+  :root { --text-offset: -1px; }
+  [data-text-size="compact"] { --text-offset: -2px; }
+  [data-text-size="large"] { --text-offset: 2px; }
+}
+
 .text-sc-8 { font-size: max(8px, 8px + var(--text-offset)); }
 .text-sc-9 { font-size: max(8px, 9px + var(--text-offset)); }
 .text-sc-10 { font-size: max(8px, 10px + var(--text-offset)); }
