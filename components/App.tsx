@@ -64,6 +64,7 @@ export default function App() {
   const [monthlyPot, setMonthlyPot] = useState<number | null>(null);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
   const [textSize, setTextSize] = useState<'compact' | 'default' | 'large'>('default');
+  const [handwrittenFont, setHandwrittenFont] = useState<'none' | 'caveat' | 'architects-daughter' | 'patrick-hand'>('none');
   const [apiKey, setApiKey] = useState('');
   const [reflections, setReflections] = useState<any[]>([]);
   const [flaggedSubs, setFlaggedSubs] = useState<any[]>([]);
@@ -115,7 +116,7 @@ export default function App() {
       const [txnsRes, catsRes, settingsRes, reflRes, subsRes, recRes, goalsRes, contribRes, digestRes, intentRes] = await Promise.all([
         supabase.from('transactions').select('*').order('date', { ascending: false }),
         supabase.from('categories').select('*').order('sort_order'),
-        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name, friday_digest_enabled, sunday_wrap_enabled, text_size').eq('user_id', user.id).maybeSingle(),
+        supabase.from('settings').select('monthly_pot, theme, claude_api_key, last_visited_at, display_name, friday_digest_enabled, sunday_wrap_enabled, text_size, handwritten_font').eq('user_id', user.id).maybeSingle(),
         supabase.from('reflections').select('*').order('created_at', { ascending: false }),
         supabase.from('flagged_subscriptions').select('*').eq('cancelled', false).order('flagged_at', { ascending: false }),
         supabase.from('recurring_templates').select('*').order('sort_order'),
@@ -163,6 +164,7 @@ export default function App() {
         if (settingsRes.data.display_name) setDisplayName(settingsRes.data.display_name);
         setFridayDigestEnabled(settingsRes.data.friday_digest_enabled ?? true);
         setTextSize(settingsRes.data.text_size || 'default');
+        setHandwrittenFont(settingsRes.data.handwritten_font || 'none');
         setSundayWrapEnabled(settingsRes.data.sunday_wrap_enabled ?? true);
       }
       if (reflRes.data) setReflections(reflRes.data);
@@ -222,11 +224,22 @@ export default function App() {
     document.documentElement.setAttribute('data-text-size', textSize);
   }, [textSize]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-handwritten', handwrittenFont);
+  }, [handwrittenFont]);
+
   async function saveTextSize(size: 'compact' | 'default' | 'large') {
     setTextSize(size);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('settings').upsert({ user_id: user.id, text_size: size });
+  }
+
+  async function saveHandwrittenFont(font: 'none' | 'caveat' | 'architects-daughter' | 'patrick-hand') {
+    setHandwrittenFont(font);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('settings').upsert({ user_id: user.id, handwritten_font: font });
   }
 
   async function saveTheme(id: string) {
@@ -651,6 +664,8 @@ export default function App() {
         onSaveTheme={saveTheme}
         textSize={textSize}
         onSaveTextSize={saveTextSize}
+        handwrittenFont={handwrittenFont}
+        onSaveHandwrittenFont={saveHandwrittenFont}
         apiKey={apiKey}
         onSaveApiKey={saveApiKey}
         onExportCSV={exportCSV}

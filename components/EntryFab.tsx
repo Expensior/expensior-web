@@ -246,7 +246,7 @@ function TypeView({ categories, knownMerchants, onBack, onAdd, onDone }: { categ
                   value={preview.description}
                   onChange={(v) => setPreview({ ...preview, description: v })}
                   merchants={knownMerchants}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1 text-sc-18 text-[var(--text)]"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1 text-sc-18 text-[var(--text)] handwritten-text"
                 />
               </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -274,7 +274,7 @@ function TypeView({ categories, knownMerchants, onBack, onAdd, onDone }: { categ
               onChange={(v) => setDetail({ ...detail, description: v })}
               merchants={knownMerchants}
               placeholder="Description"
-              className="w-full bg-[var(--bg)]/40 border border-[var(--border)]/50 rounded-lg px-2 py-2 text-sc-20 text-[var(--text)]"
+              className="w-full bg-[var(--bg)]/40 border border-[var(--border)]/50 rounded-lg px-2 py-2 text-sc-20 text-[var(--text)] handwritten-text"
             />
           </div>
           <div className="flex flex-wrap gap-1.5 mb-2">
@@ -522,7 +522,7 @@ function SmsView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { categor
               <label key={i} className="flex items-center gap-2 bg-[var(--bg)]/30 rounded-lg px-2.5 py-2 cursor-pointer">
                 <input type="checkbox" checked={c.selected} onChange={() => setCandidates(candidates.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sc-18 text-[var(--text)] truncate">{c.description}</p>
+                  <p className="text-sc-18 text-[var(--text)] truncate handwritten-text">{c.description}</p>
                   <p className="text-sc-15 text-[var(--muted)]">{c.date} · {c.category}</p>
                 </div>
                 <span className="text-sc-18 font-medium text-[var(--text)] shrink-0">{fmt(c.amount)}</span>
@@ -662,7 +662,7 @@ function ScanView({ categories, hasApiKey, onBack, onBulkAdd, onDone }: { catego
                 <input
                   value={p.description}
                   onChange={(e) => updatePreview(p.id, { description: e.target.value })}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1.5 text-sc-16 text-[var(--text)] mb-2"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)]/40 rounded px-2 py-1.5 text-sc-16 text-[var(--text)] mb-2 handwritten-text"
                 />
                 <input
                   type="date"
@@ -797,7 +797,7 @@ function GmailView({
               <label key={i} className="flex items-center gap-2 bg-[var(--bg)]/30 rounded-lg px-2.5 py-2 cursor-pointer">
                 <input type="checkbox" checked={c.selected} onChange={() => setCandidates(candidates.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sc-18 text-[var(--text)] truncate">{c.description}</p>
+                  <p className="text-sc-18 text-[var(--text)] truncate handwritten-text">{c.description}</p>
                   <p className="text-sc-15 text-[var(--muted)]">{c.date} · {c.category}</p>
                 </div>
                 <span className="text-sc-18 font-medium text-[var(--text)] shrink-0">{fmt(c.amount)}</span>

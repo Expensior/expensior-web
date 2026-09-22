@@ -60,6 +60,29 @@
 .text-sc-22 { font-size: max(8px, 22px + var(--text-offset)); }
 .text-sc-32 { font-size: max(8px, 32px + var(--text-offset)); }
 
+/* Handwritten font for genuine user input (transaction descriptions,
+   reflections) -- deliberately NOT applied to computed/structural text
+   (amounts, category names, labels). Font sizes are per-font, not uniform:
+   Caveat needed roughly 1.45x the system size to read comfortably at real
+   UI sizes (verified by direct comparison before building this), Patrick
+   Hand and Architects Daughter needed much smaller bumps since they're
+   already close to print-legible. Sizes are in em, relative to whatever
+   the current .text-sc-N + --text-offset would otherwise produce, so this
+   composes correctly with the Compact/Default/Large text-size setting
+   rather than fighting it. */
+[data-handwritten="caveat"] .handwritten-text {
+  font-family: var(--font-caveat), cursive;
+  font-size: 1.42em;
+}
+[data-handwritten="architects-daughter"] .handwritten-text {
+  font-family: var(--font-architects-daughter), cursive;
+  font-size: 1.12em;
+}
+[data-handwritten="patrick-hand"] .handwritten-text {
+  font-family: var(--font-patrick-hand), cursive;
+  font-size: 1.08em;
+}
+
 /* Native number-input spinner arrows don't respect any of our theme colors
    and look visually broken against a themed background — hide them app-wide
    rather than patch them per-input. */

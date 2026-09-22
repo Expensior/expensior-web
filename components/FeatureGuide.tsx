@@ -5,7 +5,7 @@ import {
   IconX, IconChevronLeft, IconChevronRight,
   IconPencil, IconMessageCircle,
   IconBook2, IconLayoutDashboard, IconRepeat, IconMail, IconRefresh,
-  IconCamera, IconSparkles, IconShieldLock,
+  IconCamera, IconSparkles, IconShieldLock, IconBulb,
 } from '@tabler/icons-react';
 
 interface Slide {
@@ -64,8 +64,9 @@ const TIERS: TierGuide[] = [
     name: 'Master of my domain',
     tagline: 'Receipt scan and AI-assisted categorization',
     slides: [
-      { icon: IconCamera, title: 'Receipt scan', body: 'Snap or upload a photo of a receipt and Claude reads the merchant, amount, and date for you.' },
+      { icon: IconCamera, title: 'Receipt scan', body: 'Snap or upload one or several receipt photos at once and Claude reads the merchant, amount, and date for each — reviewed before anything is added.' },
       { icon: IconSparkles, title: 'Smart categorization', body: 'When a merchant isn’t recognized, Claude assigns a category — and what it learns helps every Expensior user, not just you.' },
+      { icon: IconBulb, title: 'AI insights', body: 'On the Overview tab, tap Generate to find patterns across your spending — like a day of the week that lines up with a category, or how your indulgence habits break down.' },
     ],
   },
   {

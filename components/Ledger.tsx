@@ -248,7 +248,7 @@ export default function Ledger({
             <IconReceipt2 size={22} className="absolute top-1.5 right-1.5" style={{ color: 'color-mix(in srgb, var(--on-accent), transparent 72%)' }} />
             <p className="text-sc-9 relative pr-4" style={{ color: 'var(--on-accent)' }}>Biggest expense</p>
             <p className="text-sc-15 font-bold relative truncate pr-1" style={{ color: 'var(--on-accent)' }}>{fmt(highlights.biggest.amount)}</p>
-            <p className="text-sc-8 relative truncate" style={{ color: 'var(--on-accent)' }}>{highlights.biggest.description}</p>
+            <p className="text-sc-8 relative truncate handwritten-text" style={{ color: 'var(--on-accent)' }}>{highlights.biggest.description}</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: CAT_COLORS[highlights.topCategory.name] || 'var(--positive)' }}>
             <IconCategory size={22} className="absolute top-1.5 right-1.5" style={{ color: `color-mix(in srgb, ${ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)'}, transparent 70%)` }} />
@@ -367,7 +367,7 @@ export default function Ledger({
                       style={{ width: `${fillPct}%`, background: `color-mix(in srgb, ${CAT_COLORS[t.category] || 'var(--muted)'}, transparent 82%)` }}
                     />
                     <span className="w-2 h-2 rounded-full shrink-0 relative" style={{ background: CAT_COLORS[t.category] || 'var(--muted)' }} />
-                    <span className="text-sc-16 text-[var(--text)] truncate flex-1 relative">{t.description}</span>
+                    <span className="text-sc-16 text-[var(--text)] truncate flex-1 relative handwritten-text">{t.description}</span>
                     {t.regret && (
                       <span className="text-sc-10 font-semibold px-1.5 py-0.5 rounded shrink-0 relative" style={{ background: 'color-mix(in srgb, var(--danger), transparent 88%)', color: 'var(--danger)' }}>
                         Regret

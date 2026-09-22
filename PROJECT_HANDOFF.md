@@ -481,6 +481,90 @@ confirmation. **Verify all of these live before considering them closed.**
   pairing was only ever validated against the base variables it was
   designed for.
 
+- **Three small follow-ups (this session)**:
+  1. **Handwritten font: proper on/off toggle.** The original 4-button
+     picker (Off/Caveat/Architects Daughter/Patrick Hand) conflated "on/off"
+     with "which font" — switching off and back on meant re-picking your
+     font each time. Restructured into a `ToggleRow` (same component used
+     for Friday digest/Sunday wrap) plus a 3-option picker shown only while
+     on; a local `lastHandwrittenFont` state remembers your last choice
+     across toggling off and back on, without needing a schema change (the
+     `handwritten_font` column still just stores `'none'` when off). Two
+     real syntax errors (an orphaned leftover JSX fragment, then a stray
+     unmatched `</div>`) got introduced and caught during this restructure
+     — both from editing an existing multi-line block piecemeal rather than
+     replacing it as one clean unit; worth being extra careful with exact
+     old_str boundaries when restructuring JSX that spans several closing
+     tags, not just appending new content.
+  2. **"Last updated" date at the bottom of Settings.** Deliberately NOT
+     computed at runtime in the browser (`new Date()` in client code would
+     show whenever a visitor happens to load the page, not when the app was
+     actually deployed). Instead, `scripts/generate-build-date.js` runs via
+     npm's `prebuild` lifecycle hook (fires automatically before `next
+     build`, verified by running a plain `npm run build` and confirming the
+     hook fired without any special configuration) and writes today's date
+     into a generated `lib/buildDate.generated.ts`, imported and displayed
+     in Settings. This means the date only changes on an actual rebuild —
+     exactly the "when was this last deployed" signal intended, not a
+     "what day is it" clock.
+  3. **Feature guide reviewed against everything built recently — two real
+     gaps found, not zero.** AI insights (Overview tab's "Generate" button)
+     had zero representation anywhere in the guide — added as a new slide
+     in "Master of my domain." Separately, the existing "Receipt scan"
+     slide's wording ("Snap or upload *a photo*") was stale, not just
+     incomplete, since Scan now supports selecting multiple images at once
+     — updated the wording rather than just adding something new next to
+     stale text. Navigation re-verified with the tier now at 5/2/3/1 slides
+     (Tier 3 grew from 2 to 3) — all 11 slides visited exactly once, correct
+     order. Everything else considered (autocomplete, handwritten fonts,
+     mobile layout, the Gmail scan and WCAG fixes) were deliberately left
+     alone — either minor enough to fold into existing slide wording,
+     personalization the guide doesn't cover for anything else either, or
+     bug fixes that don't change what a slide claims a feature does.
+
+- **Handwritten font for user-entered content (this session)**: a new
+  Settings control (Caveat / Architects Daughter / Patrick Hand / Off) that
+  applies a handwriting-style font specifically to genuine user input —
+  transaction descriptions and reflection answers — deliberately NOT applied
+  to amounts, category names, or any computed/structural text. The three
+  fonts were chosen after comparing roughly a dozen candidates directly
+  against real transaction-row content, specifically screening out ones
+  that looked nice but would hurt quick scanning (connected-cursive fonts
+  like Dancing Script or Homemade Apple, thin-stroke ones like Shadows Into
+  Light or Reenie Beanie that struggle at small sizes).
+  **Font sizing is per-font, not uniform**: Caveat needed roughly 1.42x the
+  base size to read as comfortably as the other two — verified by direct
+  side-by-side comparison before building anything, not guessed. Sizes are
+  applied in `em` (`app/globals.css`, scoped by a `data-handwritten`
+  attribute + a `.handwritten-text` class), so they compose correctly with
+  the existing Compact/Default/Large text-size setting rather than
+  conflicting with it.
+  **A real build-environment limitation, worked around properly, not
+  papered over**: `next/font/google` (the standard way to load Google Fonts
+  in Next.js) fetches the actual font files from Google's servers at BUILD
+  time — and this sandbox's network access doesn't include
+  `fonts.googleapis.com`, only a specific package-registry allowlist. This
+  is a genuine gap in what could be verified here, unlike everything else
+  this session. **Resolved, not just disclosed**: GitHub is in the allowed
+  domains, and Google Fonts' actual font files are mirrored on GitHub's
+  official `google/fonts` repository under the same OFL license — fetched
+  the three real font files from there (verified as genuine TrueType font
+  data, not placeholder files) and switched to `next/font/local`,
+  self-hosting them from `app/fonts/`. This fully removed the network
+  dependency at build time entirely, verified with a completely clean build
+  — arguably a more resilient outcome than the original plan, since it
+  doesn't depend on Google's CDN being reachable during any future build,
+  on Vercel or anywhere else.
+  **Where it's applied**: Ledger transaction rows and the "Biggest expense"
+  highlight box's description (NOT the "Most frequent" box's category name,
+  which is a structural label, not user input), every description
+  input/display across `EntryFab.tsx` (Quick-add, Detailed mode, Scan
+  preview cards, SMS/Gmail candidate lists), the edit-transaction modal, the
+  merchant-autocomplete dropdown suggestions, and the three Reflect
+  textareas plus the reflection history feed's actual written content
+  (explicitly not its dates or "Good:"/"Regret:"/"Wish:" labels).
+  **Migration needed**: `handwritten_font` column added to `settings`.
+
 - **Ledger highlight boxes: hardcoded white text, genuinely broken in most
   themes (this session)**: found via three new screenshots showing the
   "Biggest expense" and "Most frequent" boxes rendering completely blank in

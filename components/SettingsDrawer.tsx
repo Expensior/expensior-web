@@ -6,6 +6,7 @@ import FeatureGuide from './FeatureGuide';
 import MfaSettings from './MfaSettings';
 import { THEMES } from '@/lib/themes';
 import type { RecurringTemplate, Category } from '@/lib/types';
+import { BUILD_DATE } from '@/lib/buildDate.generated';
 
 export default function SettingsDrawer({
   open,
@@ -22,6 +23,8 @@ export default function SettingsDrawer({
   onSaveTheme,
   textSize,
   onSaveTextSize,
+  handwrittenFont,
+  onSaveHandwrittenFont,
   apiKey,
   onSaveApiKey,
   onExportCSV,
@@ -53,6 +56,8 @@ export default function SettingsDrawer({
   onSaveTheme: (id: string) => void;
   textSize: 'compact' | 'default' | 'large';
   onSaveTextSize: (size: 'compact' | 'default' | 'large') => void;
+  handwrittenFont: 'none' | 'caveat' | 'architects-daughter' | 'patrick-hand';
+  onSaveHandwrittenFont: (font: 'none' | 'caveat' | 'architects-daughter' | 'patrick-hand') => void;
   apiKey: string;
   onSaveApiKey: (k: string) => void;
   onExportCSV: () => void;
@@ -90,6 +95,9 @@ export default function SettingsDrawer({
   const [editRecAmount, setEditRecAmount] = useState('');
   const [editRecCadence, setEditRecCadence] = useState<'monthly' | 'weekly'>('monthly');
   const [guideOpen, setGuideOpen] = useState(false);
+  const [lastHandwrittenFont, setLastHandwrittenFont] = useState<'caveat' | 'architects-daughter' | 'patrick-hand'>(
+    handwrittenFont !== 'none' ? handwrittenFont : 'caveat'
+  );
   const apiKeySectionRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES.find((t) => t.id === theme);
@@ -200,6 +208,42 @@ export default function SettingsDrawer({
                 </button>
               ))}
             </div>
+
+            <label className="text-sc-13 text-[var(--muted)] block mt-4 mb-1.5">Handwritten style for your entries</label>
+            <p className="text-sc-11 text-[var(--muted)] mb-2">Applies to transaction descriptions and reflections — not amounts or category labels.</p>
+            <ToggleRow
+              label="Handwritten style"
+              sublabel="On/off — your chosen font is remembered either way"
+              checked={handwrittenFont !== 'none'}
+              onChange={(on) => onSaveHandwrittenFont(on ? lastHandwrittenFont : 'none')}
+            />
+            {handwrittenFont !== 'none' && (
+              <div className="flex flex-col gap-1.5">
+                {([
+                  { id: 'caveat' as const, fontFamily: 'var(--font-caveat), cursive', size: '1.3em' },
+                  { id: 'architects-daughter' as const, fontFamily: 'var(--font-architects-daughter), cursive', size: '1.05em' },
+                  { id: 'patrick-hand' as const, fontFamily: 'var(--font-patrick-hand), cursive', size: '1.05em' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { onSaveHandwrittenFont(opt.id); setLastHandwrittenFont(opt.id); }}
+                    className="flex items-center justify-between rounded-lg py-2 px-3 border transition-colors"
+                    style={{
+                      borderColor: handwrittenFont === opt.id ? 'var(--accent)' : 'var(--border)',
+                      background: handwrittenFont === opt.id ? 'color-mix(in srgb, var(--accent), transparent 85%)' : 'transparent',
+                    }}
+                  >
+                    <span
+                      className="text-sc-15"
+                      style={{ color: handwrittenFont === opt.id ? 'var(--accent)' : 'var(--text)', fontFamily: opt.fontFamily, fontSize: opt.size }}
+                    >
+                      Reliance Jio Infocomm
+                    </span>
+                    {handwrittenFont === opt.id && <IconCheck size={15} className="text-[var(--accent)] shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </Section>
 
           <Section title="Categories & budget">
@@ -433,6 +477,10 @@ export default function SettingsDrawer({
               </div>
             )}
           </Section>
+
+          <p className="text-sc-11 text-[var(--muted)] text-center mt-2 mb-4">
+            Last updated {new Date(BUILD_DATE + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
         </div>
       </div>
       <FeatureGuide open={guideOpen} onClose={() => setGuideOpen(false)} />

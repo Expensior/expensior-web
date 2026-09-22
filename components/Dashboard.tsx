@@ -627,17 +627,17 @@ function Reflect({ reflections, onAdd }: { reflections: any[]; onAdd: (r: { good
   return (
     <div>
       <p className="text-sc-16 text-[var(--muted)] mb-2">This week</p>
-      <textarea value={good} onChange={(e) => setGood(e.target.value)} placeholder="Felt genuinely good…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-2" rows={2} />
-      <textarea value={regret} onChange={(e) => setRegret(e.target.value)} placeholder="Wish I hadn't…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-2" rows={2} />
-      <textarea value={wish} onChange={(e) => setWish(e.target.value)} placeholder="Would have liked to spend on…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-3" rows={2} />
+      <textarea value={good} onChange={(e) => setGood(e.target.value)} placeholder="Felt genuinely good…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-2 handwritten-text" rows={2} />
+      <textarea value={regret} onChange={(e) => setRegret(e.target.value)} placeholder="Wish I hadn't…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-2 handwritten-text" rows={2} />
+      <textarea value={wish} onChange={(e) => setWish(e.target.value)} placeholder="Would have liked to spend on…" className="w-full bg-[var(--bg)]/40 border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-16 text-[var(--text)] mb-3 handwritten-text" rows={2} />
       <button onClick={submit} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-1.5 text-sc-16 font-medium mb-4">Save this week&apos;s reflection</button>
       <div className="flex flex-col gap-2.5">
         {reflections.map((r) => (
           <div key={r.id} className="bg-[var(--bg)]/40 border border-[var(--border)]/40 rounded-lg p-3">
             <p className="text-sc-14 text-[var(--muted)] mb-1.5">{new Date(r.created_at).toLocaleDateString('en-IN')}</p>
-            {r.good && <p className="text-sc-16 text-[var(--text)] mb-1"><span className="text-[var(--positive)]">Good: </span>{r.good}</p>}
-            {r.regret && <p className="text-sc-16 text-[var(--text)] mb-1"><span className="text-[var(--danger)]">Regret: </span>{r.regret}</p>}
-            {r.wish && <p className="text-sc-16 text-[var(--text)]"><span className="text-[var(--accent)]">Wish: </span>{r.wish}</p>}
+            {r.good && <p className="text-sc-16 text-[var(--text)] mb-1"><span className="text-[var(--positive)]">Good: </span><span className="handwritten-text">{r.good}</span></p>}
+            {r.regret && <p className="text-sc-16 text-[var(--text)] mb-1"><span className="text-[var(--danger)]">Regret: </span><span className="handwritten-text">{r.regret}</span></p>}
+            {r.wish && <p className="text-sc-16 text-[var(--text)]"><span className="text-[var(--accent)]">Wish: </span><span className="handwritten-text">{r.wish}</span></p>}
           </div>
         ))}
       </div>

@@ -52,6 +52,7 @@ create table if not exists settings (
   daily_prompt_hour int default 21,
   friday_digest_hour int default 18,
   text_size text not null default 'default', -- compact | default | large
+  handwritten_font text not null default 'none', -- none | caveat | architects-daughter | patrick-hand
   updated_at timestamptz not null default now()
 );
 
@@ -302,3 +303,6 @@ create policy "own rows only" on insights for all using (auth.uid() = user_id) w
 -- );
 -- alter table insights enable row level security;
 -- create policy "own rows only" on insights for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Migration if you already ran schema.sql before handwritten_font existed:
+-- alter table settings add column if not exists handwritten_font text not null default 'none';

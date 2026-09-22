@@ -59,7 +59,7 @@ export default function MerchantAutocomplete({
               key={m}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onChange(m); setFocused(false); }}
-              className="w-full text-left px-3 py-2 text-sc-14 text-[var(--text)] hover:bg-[var(--bg)]/40 transition-colors"
+              className="w-full text-left px-3 py-2 text-sc-14 text-[var(--text)] hover:bg-[var(--bg)]/40 transition-colors handwritten-text"
             >
               {m}
             </button>
