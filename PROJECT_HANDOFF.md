@@ -481,6 +481,48 @@ confirmation. **Verify all of these live before considering them closed.**
   pairing was only ever validated against the base variables it was
   designed for.
 
+- **Handwritten font: scoping override for the Ledger's three highlight
+  boxes (this session)**: originally scoped the handwritten font to
+  "genuine user input" specifically, deliberately excluding the "Most
+  frequent" box's category name and "Busiest day" box's date as structural/
+  computed labels rather than something the user typed. User caught the
+  actual visual result of that distinction: sitting side by side in the
+  same row, having "Biggest expense" in handwriting while the other two
+  stayed in the system font read as inconsistent, not intentional. Overrode
+  the original scoping for this specific cluster — all three box values
+  (`highlights.topCategory.name` and the busiest-day date, alongside the
+  already-handwritten expense description) now get `.handwritten-text`.
+  The broader distinction (amounts and category names elsewhere in the app
+  stay in the system font) is unchanged; this override applies only to
+  these three boxes specifically, where the three sit together as one
+  visual unit and needed to read as one.
+
+- **Flagged subscriptions: dedup + remove, both genuinely missing until now
+  (this session)**: user-reported bug — flagged Netflix twice (once via the
+  manual form in Settings, which has no dedup check at all) and had no way
+  to remove either entry, since no delete/remove action existed anywhere in
+  the UI. Two real fixes:
+  1. **Dedup on add**: `addFlaggedSubscription` now checks (case-insensitive,
+     whitespace-trimmed) against already-flagged merchants before inserting,
+     returning `'added' | 'duplicate'` so callers can give real feedback
+     rather than silently doing nothing or silently duplicating. The
+     Settings form now shows "already flagged — see it in the Subscriptions
+     tab" instead of just clearing the input either way.
+  2. **A genuinely interesting find**: the `flagged_subscriptions` table
+     already had a `cancelled` boolean column, and the load query already
+     filtered on `.eq('cancelled', false)` — the soft-delete mechanism was
+     designed into the schema from early on, but no UI action anywhere ever
+     actually set it to `true`. `removeFlaggedSubscription` now does exactly
+     that (update, not delete — preserves history), with a lightweight
+     inline confirm per row in the Dashboard's Subscriptions tab, matching
+     the same confirm pattern already used for disabling 2FA.
+  Dedup logic tested directly (case variations, leading/trailing whitespace,
+  a genuinely-new merchant correctly passing through) before considering
+  this done. Container had reset between sessions for this fix — recovered
+  the project from the last delivered zip in outputs rather than
+  reconstructing from memory, confirming the zip is a reliable fallback if
+  this happens again.
+
 - **Three small follow-ups (this session)**:
   1. **Handwritten font: proper on/off toggle.** The original 4-button
      picker (Off/Caveat/Architects Daughter/Patrick Hand) conflated "on/off"

@@ -72,7 +72,7 @@ export default function SettingsDrawer({
   onSaveSundayWrapEnabled: (enabled: boolean) => void;
   onSendFeedback: (message: string) => void;
   gmailConnected: boolean;
-  onAddFlaggedSubscription: (merchant: string, amount: number) => void;
+  onAddFlaggedSubscription: (merchant: string, amount: number) => Promise<'added' | 'duplicate'>;
   onSignOut: () => void;
 }) {
   const [newCat, setNewCat] = useState('');
@@ -90,6 +90,7 @@ export default function SettingsDrawer({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [subMerchant, setSubMerchant] = useState('');
   const [subAmount, setSubAmount] = useState('');
+  const [subMessage, setSubMessage] = useState('');
   const [editingRecId, setEditingRecId] = useState<string | null>(null);
   const [editRecName, setEditRecName] = useState('');
   const [editRecAmount, setEditRecAmount] = useState('');
@@ -336,19 +337,25 @@ export default function SettingsDrawer({
           <Section title="Subscriptions">
             <p className="text-sc-12 text-[var(--muted)] mb-2">Automatic detection needs Gmail connected. Flag one manually here in the meantime.</p>
             <div className="flex gap-2">
-              <input value={subMerchant} onChange={(e) => setSubMerchant(e.target.value)} placeholder="Merchant, e.g. Netflix" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
+              <input value={subMerchant} onChange={(e) => { setSubMerchant(e.target.value); setSubMessage(''); }} placeholder="Merchant, e.g. Netflix" className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
               <input type="number" value={subAmount} onChange={(e) => setSubAmount(e.target.value)} placeholder="₹/mo" className="w-20 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sc-14 text-[var(--text)]" />
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!subMerchant.trim()) return;
-                  onAddFlaggedSubscription(subMerchant.trim(), parseFloat(subAmount) || 0);
-                  setSubMerchant(''); setSubAmount('');
+                  const result = await onAddFlaggedSubscription(subMerchant.trim(), parseFloat(subAmount) || 0);
+                  if (result === 'duplicate') {
+                    setSubMessage(`${subMerchant.trim()} is already flagged — see it in the Subscriptions tab.`);
+                  } else {
+                    setSubMessage('');
+                    setSubMerchant(''); setSubAmount('');
+                  }
                 }}
                 className="border border-[var(--border)]/70 bg-[var(--bg)]/50 text-[var(--muted)] hover:bg-[var(--bg)]/80 hover:border-[var(--accent)]/60 transition-colors rounded-lg px-3 text-sc-14 shrink-0"
               >
                 Flag
               </button>
             </div>
+            {subMessage && <p className="text-sc-12 mt-1.5" style={{ color: 'var(--danger)' }}>{subMessage}</p>}
           </Section>
 
           <Section title="Recurring templates">

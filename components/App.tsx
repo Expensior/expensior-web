@@ -296,11 +296,29 @@ export default function App() {
     await supabase.from('feedback').insert({ user_id: user.id, message: message.trim() });
   }
 
-  async function addFlaggedSubscription(merchant: string, amount: number) {
+  async function addFlaggedSubscription(merchant: string, amount: number): Promise<'added' | 'duplicate'> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !merchant.trim()) return;
+    if (!user || !merchant.trim()) return 'added';
+    // Dedup guard: this had none before, which is exactly how the same
+    // merchant could get flagged twice (manual form + Gmail scan, or just
+    // clicking Flag more than once) with no way to tell until it was
+    // already duplicated in the list.
+    const key = merchant.trim().toLowerCase();
+    if (flaggedSubs.some((s) => s.merchant.trim().toLowerCase() === key)) {
+      return 'duplicate';
+    }
     const { data } = await supabase.from('flagged_subscriptions').insert({ user_id: user.id, merchant: merchant.trim(), amount: amount || null }).select().single();
     if (data) setFlaggedSubs((prev) => [data, ...prev]);
+    return 'added';
+  }
+
+  async function removeFlaggedSubscription(id: string) {
+    // Soft delete via the 'cancelled' column -- it already existed in the
+    // schema and the load query already filters it out
+    // (.eq('cancelled', false)), but nothing ever actually set it; there
+    // was no remove action anywhere in the UI until now.
+    await supabase.from('flagged_subscriptions').update({ cancelled: true }).eq('id', id);
+    setFlaggedSubs((prev) => prev.filter((s) => s.id !== id));
   }
 
   async function addTransaction(t: NewTransaction) {
@@ -585,6 +603,7 @@ export default function App() {
             lastVisitedAt={lastVisitedAt}
             gmailConnected={gmailConnected}
             onAddFlaggedSubscription={addFlaggedSubscription}
+            onRemoveFlaggedSubscription={removeFlaggedSubscription}
             hasApiKey={!!apiKey}
             insightCards={insightCards}
             insightsGeneratedAt={insightsGeneratedAt}

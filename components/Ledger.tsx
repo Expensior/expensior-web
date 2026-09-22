@@ -253,13 +253,13 @@ export default function Ledger({
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: CAT_COLORS[highlights.topCategory.name] || 'var(--positive)' }}>
             <IconCategory size={22} className="absolute top-1.5 right-1.5" style={{ color: `color-mix(in srgb, ${ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)'}, transparent 70%)` }} />
             <p className="text-sc-9 relative pr-4" style={{ color: ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)' }}>Most frequent</p>
-            <p className="text-sc-15 font-bold relative truncate pr-1" style={{ color: ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)' }}>{highlights.topCategory.name}</p>
+            <p className="text-sc-15 font-bold relative truncate pr-1 handwritten-text" style={{ color: ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)' }}>{highlights.topCategory.name}</p>
             <p className="text-sc-8 relative" style={{ color: ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)' }}>{highlights.topCategory.count} transactions</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--border)' }}>
             <IconFlame size={22} className="absolute top-1.5 right-1.5" style={{ color: 'color-mix(in srgb, var(--on-border), transparent 70%)' }} />
             <p className="text-sc-9 relative pr-4" style={{ color: 'var(--on-border)' }}>Busiest day</p>
-            <p className="text-sc-15 font-bold relative truncate pr-1" style={{ color: 'var(--on-border)' }}>{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+            <p className="text-sc-15 font-bold relative truncate pr-1 handwritten-text" style={{ color: 'var(--on-border)' }}>{new Date(highlights.busiestDay.date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
             <p className="text-sc-8 relative" style={{ color: 'var(--on-border)' }}>{highlights.busiestDay.count} transactions</p>
           </div>
         </div>

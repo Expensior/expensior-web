@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   IconGauge, IconChartLine, IconTargetArrow, IconNotebook, IconSunrise,
-  IconFlag, IconPlus, IconClock, IconFlame, IconTrophy, IconSparkles,
+  IconFlag, IconPlus, IconClock, IconFlame, IconTrophy, IconSparkles, IconX,
 } from '@tabler/icons-react';
 import { fmt } from '@/lib/parse';
 import { CAT_COLORS } from '@/lib/categories';
@@ -42,7 +42,7 @@ export default function Dashboard({
   allTransactions, monthlyPot, reflections, onAddReflection, flaggedSubs, onSelectCategory,
   goals, goalContributions, onAddGoal, onLogContribution,
   digests, intentions, onSetIntention, lastVisitedAt,
-  gmailConnected, onAddFlaggedSubscription,
+  gmailConnected, onAddFlaggedSubscription, onRemoveFlaggedSubscription,
   hasApiKey, insightCards, insightsGeneratedAt, generatingInsights, insightsError, onGenerateInsights,
 }: {
   allTransactions: Transaction[];
@@ -60,7 +60,8 @@ export default function Dashboard({
   onSetIntention: (amount: number) => void;
   lastVisitedAt: string | null;
   gmailConnected: boolean;
-  onAddFlaggedSubscription: (merchant: string, amount: number) => void;
+  onAddFlaggedSubscription: (merchant: string, amount: number) => Promise<'added' | 'duplicate'>;
+  onRemoveFlaggedSubscription: (id: string) => void;
   hasApiKey: boolean;
   insightCards: { title: string; body: string }[] | null;
   insightsGeneratedAt: string | null;
@@ -107,7 +108,7 @@ export default function Dashboard({
           {currentSub === 'patterns' && <Patterns allTransactions={allTransactions} monthlyPot={monthlyPot} />}
           {currentSub === 'trends' && <Trends allTransactions={allTransactions} />}
           {currentSub === 'selfknow' && <SelfKnowledge allTransactions={allTransactions} intentions={intentions} onSetIntention={onSetIntention} />}
-          {currentSub === 'subs' && <Subscriptions subs={flaggedSubs} gmailConnected={gmailConnected} onAddFlaggedSubscription={onAddFlaggedSubscription} />}
+          {currentSub === 'subs' && <Subscriptions subs={flaggedSubs} gmailConnected={gmailConnected} onAddFlaggedSubscription={onAddFlaggedSubscription} onRemoveFlaggedSubscription={onRemoveFlaggedSubscription} />}
           {currentSub === 'reflect' && <Reflect reflections={reflections} onAdd={onAddReflection} />}
           {currentSub === 'digest' && <DigestFeed digests={digests} />}
           {currentSub === 'goals' && <Goals goals={goals} contributions={goalContributions} onAddGoal={onAddGoal} onLogContribution={onLogContribution} />}
@@ -543,10 +544,11 @@ function SelfKnowledge({ allTransactions, intentions, onSetIntention }: { allTra
   );
 }
 
-function Subscriptions({ subs, gmailConnected, onAddFlaggedSubscription }: { subs: any[]; gmailConnected: boolean; onAddFlaggedSubscription: (merchant: string, amount: number) => void }) {
+function Subscriptions({ subs, gmailConnected, onAddFlaggedSubscription, onRemoveFlaggedSubscription }: { subs: any[]; gmailConnected: boolean; onAddFlaggedSubscription: (merchant: string, amount: number) => Promise<'added' | 'duplicate'>; onRemoveFlaggedSubscription: (id: string) => void }) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState('');
   const [candidates, setCandidates] = useState<{ merchant: string; amount: number; date: string; selected: boolean }[] | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const total = subs.reduce((s, x) => s + (x.amount || 0), 0);
 
   async function scan() {
@@ -610,9 +612,27 @@ function Subscriptions({ subs, gmailConnected, onAddFlaggedSubscription }: { sub
       )}
       <div className="flex flex-col gap-2.5">
         {subs.map((s) => (
-          <div key={s.id} className="flex justify-between items-center bg-[var(--bg)]/40 rounded-lg px-3 py-2">
-            <div><p className="text-sc-16 text-[var(--text)]">{s.merchant}</p><p className="text-sc-14 text-[var(--muted)]">Flagged {new Date(s.flagged_at).toLocaleDateString('en-IN')}</p></div>
-            <span className="text-sc-14 text-[var(--accent)]">{s.amount ? fmt(s.amount) : ''}</span>
+          <div key={s.id} className="bg-[var(--bg)]/40 rounded-lg px-3 py-2">
+            <div className="flex justify-between items-center">
+              <div><p className="text-sc-16 text-[var(--text)]">{s.merchant}</p><p className="text-sc-14 text-[var(--muted)]">Flagged {new Date(s.flagged_at).toLocaleDateString('en-IN')}</p></div>
+              <div className="flex items-center gap-3">
+                <span className="text-sc-14 text-[var(--accent)]">{s.amount ? fmt(s.amount) : ''}</span>
+                {confirmRemoveId !== s.id && (
+                  <button onClick={() => setConfirmRemoveId(s.id)} aria-label="Remove" className="text-[var(--muted)] hover:text-[var(--danger)] transition-colors">
+                    <IconX size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            {confirmRemoveId === s.id && (
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border)]/40">
+                <p className="text-sc-13" style={{ color: 'var(--danger)' }}>Remove this subscription?</p>
+                <div className="flex gap-2">
+                  <button onClick={() => { onRemoveFlaggedSubscription(s.id); setConfirmRemoveId(null); }} className="text-sc-13 font-medium" style={{ color: 'var(--danger)' }}>Remove</button>
+                  <button onClick={() => setConfirmRemoveId(null)} className="text-sc-13 text-[var(--muted)]">Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
