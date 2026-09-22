@@ -496,6 +496,21 @@ confirmation. **Verify all of these live before considering them closed.**
   stay in the system font) is unchanged; this override applies only to
   these three boxes specifically, where the three sit together as one
   visual unit and needed to read as one.
+  **Follow-up correction, same session**: the first pass put the
+  handwritten treatment on the "Biggest expense" box's merchant
+  *description* ("House Rent"), leaving the *amount* (₹53,000) in the
+  system font. That was the wrong line — in the other two boxes, the
+  large bold value that gets the handwritten treatment is the category
+  name / date, i.e. the box's headline figure, not its smaller caption.
+  Swapped: the amount now gets `.handwritten-text`, the description reverts
+  to the system font, matching the same "headline value is handwritten,
+  caption stays plain" pattern the other two boxes already have. **Worth
+  being explicit about**: this puts an amount in the handwritten font,
+  which contradicts the ORIGINAL general rule (amounts stay in the system
+  font everywhere, since handwritten digits are harder to scan quickly).
+  That general rule is unchanged everywhere else in the app — this is a
+  second deliberate, scoped exception for this one specific cluster of
+  three boxes, not a reversal of the broader principle.
 
 - **Flagged subscriptions: dedup + remove, both genuinely missing until now
   (this session)**: user-reported bug — flagged Netflix twice (once via the

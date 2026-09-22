@@ -247,8 +247,8 @@ export default function Ledger({
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: 'var(--accent)' }}>
             <IconReceipt2 size={22} className="absolute top-1.5 right-1.5" style={{ color: 'color-mix(in srgb, var(--on-accent), transparent 72%)' }} />
             <p className="text-sc-9 relative pr-4" style={{ color: 'var(--on-accent)' }}>Biggest expense</p>
-            <p className="text-sc-15 font-bold relative truncate pr-1" style={{ color: 'var(--on-accent)' }}>{fmt(highlights.biggest.amount)}</p>
-            <p className="text-sc-8 relative truncate handwritten-text" style={{ color: 'var(--on-accent)' }}>{highlights.biggest.description}</p>
+            <p className="text-sc-15 font-bold relative truncate pr-1 handwritten-text" style={{ color: 'var(--on-accent)' }}>{fmt(highlights.biggest.amount)}</p>
+            <p className="text-sc-8 relative truncate" style={{ color: 'var(--on-accent)' }}>{highlights.biggest.description}</p>
           </div>
           <div className="relative rounded-xl p-2.5 overflow-hidden" style={{ background: CAT_COLORS[highlights.topCategory.name] || 'var(--positive)' }}>
             <IconCategory size={22} className="absolute top-1.5 right-1.5" style={{ color: `color-mix(in srgb, ${ON_CAT_COLORS[highlights.topCategory.name] || 'var(--on-cat-5)'}, transparent 70%)` }} />
