@@ -548,6 +548,37 @@ confirmation. **Verify all of these live before considering them closed.**
   checked in `finally`, so loading only clears on the attempt that actually
   finishes — success or a genuine second failure, never the transitional
   moment in between.
+  **Follow-up: the digest STILL didn't appear after deploying the JWT fix
+  — a real, independent second bug, not the same one recurring.** Found by
+  reading `generateMissingDigests` closely: the existence check compared
+  `period_end` via raw string equality (`d.period_end ===
+  fridayCutoff.toISOString()`), but Postgres's returned `timestamptz`
+  string format doesn't necessarily match JS's `.toISOString()` byte for
+  byte (different millisecond precision, `+00:00` vs `Z`). Verified this
+  concretely with realistic Postgres-style round-trip strings — every
+  variant tested failed the string comparison while representing the exact
+  same instant. The `digests` table also has `unique(user_id, kind,
+  period_end)`. Put together: a real digest could get created once, then
+  every subsequent load's string comparison would wrongly think it doesn't
+  exist, attempt a duplicate insert, hit the unique constraint, and fail —
+  and that failure was completely silent, since the insert's `error` field
+  was never checked (`const { data } = await
+  supabase.from('digests').insert(...)`, discarding error entirely). Fixed
+  both: existence checks now compare actual instants
+  (`new Date(d.period_end).getTime() === fridayCutoff.getTime()`, verified
+  against the same realistic round-trip strings — now correctly returns
+  true), and insert errors are now caught and logged rather than silently
+  discarded.
+  **Being precise about what this does and doesn't confirm**: this fix
+  resolves the case where at least one digest already exists and later
+  loads can't recognize it. If literally zero Friday digests have ever been
+  created (rather than one existing but being invisible to this check),
+  that would be a first-insert failure, which is a different question this
+  particular fix doesn't directly address — though the same insert-error
+  logging fix means that failure mode, if it's what's actually happening,
+  will now be visible in the browser console instead of silent, which is
+  the concrete next diagnostic step if the digest still doesn't appear
+  after this deploys.
 
 - **Handwritten font: scoping override for the Ledger's three highlight
   boxes (this session)**: originally scoped the handwritten font to

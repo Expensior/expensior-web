@@ -21,8 +21,17 @@ async function generateMissingDigests(userId: string, existing: Digest[], transa
   const fridayCutoff = mostRecentPastWeekday(now, 5, 18);
   const sundayCutoff = mostRecentPastWeekday(now, 0, 18);
 
-  const hasFriday = existing.some((d) => d.kind === 'friday' && d.period_end === fridayCutoff.toISOString());
-  const hasSunday = existing.some((d) => d.kind === 'sunday' && d.period_end === sundayCutoff.toISOString());
+  // Compare actual instants, not raw strings -- Postgres's returned
+  // timestamptz format doesn't necessarily match JS's .toISOString() byte
+  // for byte (different millisecond precision, +00:00 vs Z), so a string
+  // comparison can read as "different" for the exact same moment. Verified
+  // this concretely: every realistic Postgres round-trip format failed a
+  // string match while still being the same instant numerically. That
+  // false mismatch was silently causing duplicate insert attempts, which
+  // then hit the table's own unique(user_id, kind, period_end) constraint
+  // and failed -- silently, since the insert error below was never checked.
+  const hasFriday = existing.some((d) => d.kind === 'friday' && new Date(d.period_end).getTime() === fridayCutoff.getTime());
+  const hasSunday = existing.some((d) => d.kind === 'sunday' && new Date(d.period_end).getTime() === sundayCutoff.getTime());
 
   const toInsert: any[] = [];
   if (!hasFriday && enabled.friday) {
@@ -35,7 +44,16 @@ async function generateMissingDigests(userId: string, existing: Digest[], transa
   }
 
   if (toInsert.length === 0) return [];
-  const { data } = await supabase.from('digests').insert(toInsert).select();
+  const { data, error } = await supabase.from('digests').insert(toInsert).select();
+  if (error) {
+    // Previously silent -- a failed insert (e.g. hitting the unique
+    // constraint on a false-mismatch retry, or any other DB-side issue)
+    // produced no error, no log, nothing. Now at least visible for
+    // diagnosis, even though a background digest generation failure isn't
+    // worth interrupting the user with a full error screen for.
+    console.error('Digest insert failed:', error);
+    return [];
+  }
   return (data || []) as Digest[];
 }
 
