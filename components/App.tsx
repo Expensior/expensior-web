@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { IconSettings, IconPencil, IconMenu2, IconChevronLeft } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { DEFAULT_CATEGORIES } from '@/lib/categories';
@@ -95,8 +95,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mfaNeedsVerification, setMfaNeedsVerification] = useState(false);
+  const autoRetriedAuthError = useRef(false);
 
   const load = useCallback(async () => {
+    let willSilentlyRetry = false;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
@@ -196,9 +198,25 @@ export default function App() {
       }
     } catch (err: any) {
       console.error('Failed to load Expensior data:', err);
-      setLoadError(err?.message || 'Something went wrong loading your data.');
+      const message = err?.message || 'Something went wrong loading your data.';
+      const looksLikeAuthError = /jwt|token|session|expired/i.test(message);
+      // A plain page refresh has been observed to silently fix this exact
+      // error -- almost certainly a tab-woke-from-background race where the
+      // first API call fires before the client's own token refresh
+      // completes. Replicating that recovery automatically, once, means
+      // most people never see this screen at all rather than needing to
+      // notice the error and manually reload. Capped at one attempt via
+      // the ref so a genuinely broken session doesn't loop forever.
+      if (looksLikeAuthError && !autoRetriedAuthError.current) {
+        autoRetriedAuthError.current = true;
+        willSilentlyRetry = true;
+        await supabase.auth.refreshSession();
+        load();
+        return;
+      }
+      setLoadError(message);
     } finally {
-      setLoading(false);
+      if (!willSilentlyRetry) setLoading(false);
     }
   }, [supabase]);
 
@@ -529,13 +547,39 @@ export default function App() {
   }
 
   if (loadError) {
+    const isAuthError = /jwt|token|session|expired/i.test(loadError);
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center">
           <p className="text-[var(--text)] text-sc-16 mb-2">Couldn&apos;t load your data</p>
           <p className="text-[var(--muted)] text-sc-14 mb-4">{loadError}</p>
-          <p className="text-[var(--muted)] text-sc-14 mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
-          <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sc-14 font-medium">Try again</button>
+          {isAuthError ? (
+            <>
+              <p className="text-[var(--muted)] text-sc-14 mb-4">Expensior already tried refreshing your session automatically and it didn&apos;t resolve on its own this time. One more manual retry sometimes still works.</p>
+              <button
+                onClick={async () => {
+                  autoRetriedAuthError.current = false;
+                  await supabase.auth.refreshSession();
+                  setLoadError(null);
+                  setLoading(true);
+                  load();
+                }}
+                className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sc-14 font-medium mb-2"
+              >
+                Retry
+              </button>
+              <p className="text-[var(--muted)] text-sc-13">
+                <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }} className="underline">
+                  Still stuck? Sign out and sign in again
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[var(--muted)] text-sc-14 mb-4">This usually means the database tables haven&apos;t been created yet, or a newer migration hasn&apos;t been run — check <code>supabase/schema.sql</code>.</p>
+              <button onClick={() => { setLoadError(null); setLoading(true); load(); }} className="bg-[var(--accent)] text-[var(--bg)] rounded-lg px-4 py-2 text-sc-14 font-medium">Try again</button>
+            </>
+          )}
         </div>
       </div>
     );

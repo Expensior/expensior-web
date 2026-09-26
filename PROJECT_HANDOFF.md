@@ -481,6 +481,74 @@ confirmation. **Verify all of these live before considering them closed.**
   pairing was only ever validated against the base variables it was
   designed for.
 
+- **JWT/session error after inactivity: misleading message fixed, AND
+  likely explains the separately-reported missing Friday digest (this
+  session)**: user reported seeing "JWT issued at future" after a period
+  away, plus no Friday digest having generated. Investigated both together
+  rather than as two unrelated reports.
+  **Bug 1, confirmed by reading the code**: the error-display block showed
+  "This usually means the database tables haven't been created yet, or a
+  newer migration hasn't been run" UNCONDITIONALLY, for any `loadError`
+  whatsoever — a hardcoded message that happened to be right often enough
+  during active development (migration lag was a real, recurring issue all
+  session) but is flatly wrong for an auth/session error, which has nothing
+  to do with missing tables.
+  **Bug 2 investigated, NOT confirmed as a separate bug**: tested
+  `mostRecentPastWeekday` (the Friday-cutoff logic) against several
+  realistic scenarios, explicitly including "returning after inactivity"
+  and "returning after several weeks away" — correct in every case, still
+  correctly finds the most recent past Friday regardless of how long the
+  gap was. But `generateMissingDigests` is called from INSIDE the same
+  try block as the rest of the initial load, after the user/settings/
+  transactions fetch — so if the JWT error fires anywhere earlier in that
+  sequence (which is exactly where an auth-validation failure would fire),
+  the whole block throws before digest generation is ever reached. **Most
+  likely explanation: issue 2 is a downstream consequence of issue 1**, not
+  an independent bug — if the user hasn't yet had one fully successful load
+  since last Friday 6pm (because every attempt has hit the JWT error), the
+  digest genuinely never got the chance to run, rather than running
+  incorrectly.
+  **Fix**: the error display now distinguishes auth/session errors
+  (matching `/jwt|token|session|expired/i` against the actual error
+  message) from genuine schema errors, tested against both the exact
+  reported message and several other realistic Supabase auth error
+  strings, confirming genuine schema errors ("column X does not exist")
+  still correctly get the migration-check message. For auth errors
+  specifically, swapped the dead-end "Try again" (which just re-runs
+  `load()` with the SAME broken session — unlikely to self-heal if the
+  session itself is the problem, not a transient blip) for "Sign out and
+  sign in again," which actually clears the stale session before
+  redirecting to `/login`. If this fix resolves issue 1 for the user, issue
+  2 should resolve on its own on the next successful load — worth
+  confirming both together rather than assuming a second fix is needed if
+  the digest starts appearing normally once sign-in stops failing.
+  **Follow-up correction, same conversation, based on new information**:
+  the user clarified that a plain page refresh already silently fixes this
+  error and lets login succeed — meaning the underlying session is NOT
+  actually broken, this is a timing/race issue (almost certainly the tab
+  waking from being backgrounded, where the first API call fires before the
+  Supabase client's own token refresh completes), not a genuinely expired
+  session. The original fix (force sign-out, full re-authentication) was
+  more disruptive than this actually needs. **Replaced with**: an automatic,
+  silent retry — on an auth-shaped error, call
+  `supabase.auth.refreshSession()` and re-run `load()` once before ever
+  showing an error screen at all, replicating what a manual refresh already
+  does without requiring the user to notice anything or take action. Capped
+  at one attempt via a `useRef` flag to avoid looping if the session is
+  genuinely broken. The error screen (with a manual "Retry" and a
+  last-resort "sign out" link) now only appears if that automatic attempt
+  ALSO fails.
+  **A real race-condition bug caught and fixed while building this, not
+  after**: the first version returned `load()` from inside the catch block
+  while an unconditional `finally { setLoading(false) }` remained — since
+  `finally` always runs regardless of an early return, this would have
+  cleared the loading state immediately, before the recursive retry had a
+  chance to fetch anything, causing a brief flash of stale/empty UI. Fixed
+  with a local `willSilentlyRetry` flag, set right before the retry and
+  checked in `finally`, so loading only clears on the attempt that actually
+  finishes — success or a genuine second failure, never the transitional
+  moment in between.
+
 - **Handwritten font: scoping override for the Ledger's three highlight
   boxes (this session)**: originally scoped the handwritten font to
   "genuine user input" specifically, deliberately excluding the "Most
