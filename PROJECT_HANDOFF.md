@@ -579,6 +579,28 @@ confirmation. **Verify all of these live before considering them closed.**
   will now be visible in the browser console instead of silent, which is
   the concrete next diagnostic step if the digest still doesn't appear
   after this deploys.
+  **Follow-up, same conversation: the digest STILL didn't appear (confirmed
+  via screenshot — most recent Friday digest shown was 18 Sept, meaning
+  25 Sept genuinely never got created, not a display bug hiding an existing
+  one).** Rather than asking the user to dig through browser DevTools for
+  the console log the previous fix added, surfaced the error directly in
+  the UI instead — `generateMissingDigests` now returns `{ digests, error }`
+  instead of just an array, threaded up through `load()` into a new
+  `digestGenerationError` state, displayed as a visible banner at the top
+  of the Digest tab ("Couldn't generate this week's digest: ...") in both
+  the empty-list and existing-digests-present cases. **Caught my own
+  mistake before it shipped**: first threaded this into the wrong
+  component (`Reflect`, which renders the user's own written weekly
+  reflections) instead of `DigestFeed` (which renders the actual Friday/
+  Sunday digest list shown in the screenshot) — both are rendered from
+  the same parent under different tab conditions and have similarly-shaped
+  props, which is exactly the kind of mix-up worth double-checking against
+  the actual call sites rather than assuming from a component's name alone.
+  Moved it to the correct component before building. This does not fix the
+  underlying cause by itself — it makes whatever the underlying cause is
+  immediately visible in the app next time it fails, which is the actual
+  blocker on diagnosing this further without more information than a
+  screenshot of the normal app view can provide.
 
 - **Handwritten font: scoping override for the Ledger's three highlight
   boxes (this session)**: originally scoped the handwritten font to

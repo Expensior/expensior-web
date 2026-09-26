@@ -43,18 +43,13 @@ async function generateMissingDigests(userId: string, existing: Digest[], transa
     toInsert.push({ user_id: userId, kind: 'sunday', period_end: sundayCutoff.toISOString(), spent: content.spent, indulgence_pct: content.indulgence_pct, top_categories: content.top_categories, insight: content.insight });
   }
 
-  if (toInsert.length === 0) return [];
+  if (toInsert.length === 0) return { digests: [], error: null };
   const { data, error } = await supabase.from('digests').insert(toInsert).select();
   if (error) {
-    // Previously silent -- a failed insert (e.g. hitting the unique
-    // constraint on a false-mismatch retry, or any other DB-side issue)
-    // produced no error, no log, nothing. Now at least visible for
-    // diagnosis, even though a background digest generation failure isn't
-    // worth interrupting the user with a full error screen for.
     console.error('Digest insert failed:', error);
-    return [];
+    return { digests: [], error: error.message };
   }
-  return (data || []) as Digest[];
+  return { digests: (data || []) as Digest[], error: null };
 }
 
 export default function App() {
@@ -112,6 +107,7 @@ export default function App() {
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [digestGenerationError, setDigestGenerationError] = useState<string | null>(null);
   const [mfaNeedsVerification, setMfaNeedsVerification] = useState(false);
   const autoRetriedAuthError = useRef(false);
 
@@ -201,11 +197,12 @@ export default function App() {
       // Generate any missing Friday/Sunday digests, bounded to their correct
       // past cutoff (not "now"), then merge with whatever's already stored.
       const existingDigests = (digestRes.data || []) as Digest[];
-      const newDigests = await generateMissingDigests(user.id, existingDigests, (txnsRes.data || []) as Transaction[], {
+      const digestResult = await generateMissingDigests(user.id, existingDigests, (txnsRes.data || []) as Transaction[], {
         friday: settingsRes.data?.friday_digest_enabled ?? true,
         sunday: settingsRes.data?.sunday_wrap_enabled ?? true,
       });
-      setDigests([...newDigests, ...existingDigests]);
+      setDigests([...digestResult.digests, ...existingDigests]);
+      setDigestGenerationError(digestResult.error);
 
       try {
         const gmailRes = await fetch('/api/gmail-status');
@@ -652,6 +649,7 @@ export default function App() {
             allTransactions={transactions}
             monthlyPot={monthlyPot}
             reflections={reflections}
+            digestGenerationError={digestGenerationError}
             onAddReflection={addReflection}
             flaggedSubs={flaggedSubs}
             onSelectCategory={(c) => { setFilter({ ...emptyFilter(), categories: new Set([c]) }); setLedgerOpen(true); }}

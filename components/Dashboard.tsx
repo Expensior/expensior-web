@@ -42,7 +42,7 @@ export default function Dashboard({
   allTransactions, monthlyPot, reflections, onAddReflection, flaggedSubs, onSelectCategory,
   goals, goalContributions, onAddGoal, onLogContribution,
   digests, intentions, onSetIntention, lastVisitedAt,
-  gmailConnected, onAddFlaggedSubscription, onRemoveFlaggedSubscription,
+  gmailConnected, onAddFlaggedSubscription, onRemoveFlaggedSubscription, digestGenerationError,
   hasApiKey, insightCards, insightsGeneratedAt, generatingInsights, insightsError, onGenerateInsights,
 }: {
   allTransactions: Transaction[];
@@ -62,6 +62,7 @@ export default function Dashboard({
   gmailConnected: boolean;
   onAddFlaggedSubscription: (merchant: string, amount: number) => Promise<'added' | 'duplicate'>;
   onRemoveFlaggedSubscription: (id: string) => void;
+  digestGenerationError: string | null;
   hasApiKey: boolean;
   insightCards: { title: string; body: string }[] | null;
   insightsGeneratedAt: string | null;
@@ -110,7 +111,7 @@ export default function Dashboard({
           {currentSub === 'selfknow' && <SelfKnowledge allTransactions={allTransactions} intentions={intentions} onSetIntention={onSetIntention} />}
           {currentSub === 'subs' && <Subscriptions subs={flaggedSubs} gmailConnected={gmailConnected} onAddFlaggedSubscription={onAddFlaggedSubscription} onRemoveFlaggedSubscription={onRemoveFlaggedSubscription} />}
           {currentSub === 'reflect' && <Reflect reflections={reflections} onAdd={onAddReflection} />}
-          {currentSub === 'digest' && <DigestFeed digests={digests} />}
+          {currentSub === 'digest' && <DigestFeed digests={digests} digestGenerationError={digestGenerationError} />}
           {currentSub === 'goals' && <Goals goals={goals} contributions={goalContributions} onAddGoal={onAddGoal} onLogContribution={onLogContribution} />}
         </div>
       </div>
@@ -665,11 +666,24 @@ function Reflect({ reflections, onAdd }: { reflections: any[]; onAdd: (r: { good
   );
 }
 
-function DigestFeed({ digests }: { digests: Digest[] }) {
+function DigestFeed({ digests, digestGenerationError }: { digests: Digest[]; digestGenerationError: string | null }) {
   const sorted = [...digests].sort((a, b) => b.period_end.localeCompare(a.period_end));
-  if (sorted.length === 0) return <p className="text-sc-16 text-[var(--muted)]">Your first digest appears after the next Friday or Sunday 6pm passes.</p>;
+  const errorBanner = digestGenerationError && (
+    <div className="bg-[var(--bg)]/40 border rounded-lg p-3 mb-3" style={{ borderColor: 'var(--danger)' }}>
+      <p className="text-sc-14" style={{ color: 'var(--danger)' }}>Couldn&apos;t generate this week&apos;s digest: {digestGenerationError}</p>
+    </div>
+  );
+  if (sorted.length === 0) {
+    return (
+      <div>
+        {errorBanner}
+        <p className="text-sc-16 text-[var(--muted)]">Your first digest appears after the next Friday or Sunday 6pm passes.</p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
+      {errorBanner}
       {sorted.map((d) => (
         <div key={d.id} className="bg-[var(--bg)]/40 rounded-xl p-4" style={{ borderLeft: `3px solid ${d.kind === 'friday' ? 'var(--positive)' : 'var(--accent)'}` }}>
           <div className="flex justify-between items-center mb-2">
