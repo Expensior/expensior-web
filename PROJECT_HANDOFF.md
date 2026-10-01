@@ -602,6 +602,65 @@ confirmation. **Verify all of these live before considering them closed.**
   blocker on diagnosing this further without more information than a
   screenshot of the normal app view can provide.
 
+- **Gmail "access expired" was a dead end — no way to act on it (this
+  session)**: user reported not seeing a "Connect Gmail" button; turned out
+  Gmail was already connected from earlier in the build, but the token had
+  expired. The scan error message itself says "reconnect it in the Gmail
+  tile," but the Gmail tile's connected-state UI only ever showed a plain
+  red error line — no button, nothing to actually tap. The `connect()`
+  function (the same one used by the initial "Connect Gmail" button, which
+  calls `supabase.auth.signInWithOAuth` and gets a fresh refresh token via
+  `/auth/gmail-callback`) already existed and would have worked fine for
+  re-authenticating too — it just was never offered again once a token
+  existed at all, regardless of whether that token still worked. Fixed:
+  when the scan error matches `/expired/i`, a "Reconnect Gmail" button now
+  appears right under the error, reusing the existing `connect()` handler
+  rather than needing new OAuth logic.
+
+- **The ACTUAL root cause of the missing Friday digest, found by taking the
+  user's precise timeline seriously rather than stopping at "toggle was
+  off" (this session)**: after all the digest-generation fixes, the user
+  clarified the real sequence: toggle was ON, digest didn't generate, they
+  manually clicked it off then back on troubleshooting on their own (didn't
+  fix it), asked for help, and only after that were seen with it in an OFF
+  state — which then fixed it once switched back on. That sequence — rapid
+  off/on clicking leaving the saved value stuck off despite the UI
+  appearing fine — is the signature of a specific, findable bug: a race
+  condition, not a settings misconfiguration and not anything related to
+  the digest-generation fixes made earlier (confirmed via grep that none of
+  those touch `friday_digest_enabled` at all).
+  **Root cause, confirmed by reading the code**: `saveFridayDigestEnabled`
+  (and seven other settings-save functions with the identical shape) each
+  independently called `getUser()` then `upsert()` with zero sequencing
+  between separate calls. Two rapid clicks (off, then on) create two
+  overlapping async chains; whichever one's upsert happens to physically
+  arrive at the database LAST wins — not necessarily whichever was clicked
+  last. An older "off" request landing after a newer "on" request would
+  silently leave the saved value off while the local UI, updated
+  optimistically on each click, showed "on" the whole time — exactly
+  matching what was reported.
+  **Fix**: a shared `enqueueSettingsSave` queue (a promise chain via
+  `useRef`) that forces every settings write to fully complete before the
+  next one starts, regardless of individual network timing — guaranteeing
+  writes land at the database in the order they were actually clicked, not
+  the order their network calls happened to finish. Applied to all 8
+  settings-save functions with this shape (text size, handwritten font,
+  theme, display name, both digest toggles, monthly pot, API key), not just
+  the one that got reported — the same class of bug was equally possible
+  on any of them. **Verified with a simulated race**, not just reasoned
+  about: an "OFF" write deliberately made slower than an "ON" write that
+  fires right after it — confirmed the queue still forces OFF to land
+  first and ON second, so the final state matches the last click even
+  though the last click's own request would have individually finished
+  first.
+  **Worth the meta-note**: my first response to the toggle-was-off report
+  was to accept it as a simple, un-investigated misconfiguration. The real
+  bug only surfaced because the user pushed back with the actual sequence
+  of events rather than accepting that framing — a reminder that "found in
+  an unexpected state" and "was always in that state" are different claims,
+  and the former deserves the same investigation as any other bug report,
+  not a default assumption of user error.
+
 - **Handwritten font: scoping override for the Ledger's three highlight
   boxes (this session)**: originally scoped the handwritten font to
   "genuine user input" specifically, deliberately excluding the "Most
