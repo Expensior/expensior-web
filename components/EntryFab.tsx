@@ -786,7 +786,16 @@ function GmailView({
           <button onClick={scan} disabled={scanning} className="w-full bg-[var(--accent)] text-[var(--bg)] rounded-lg py-2 text-sc-18 font-medium disabled:opacity-60">
             {scanning ? 'Scanning…' : 'Scan inbox'}
           </button>
-          {error && <p className="text-sc-17 text-[var(--danger)] mt-2">{error}</p>}
+          {error && (
+            <div className="mt-2">
+              <p className="text-sc-17 text-[var(--danger)]">{error}</p>
+              {/expired/i.test(error) && (
+                <button onClick={connect} disabled={connecting} className="w-full border border-[var(--danger)] text-[var(--danger)] rounded-lg py-2 text-sc-16 font-medium mt-2 disabled:opacity-60">
+                  {connecting ? 'Redirecting…' : 'Reconnect Gmail'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
       {candidates && (

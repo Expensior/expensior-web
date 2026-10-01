@@ -107,6 +107,22 @@ export default function App() {
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Serializes settings writes so two rapid saves (e.g. toggling a switch
+  // off then immediately back on) always reach the database in the order
+  // they were actually clicked. Without this, two independent async
+  // upserts race, and whichever happens to arrive at the server LAST wins
+  // -- not necessarily whichever was clicked last -- which is exactly what
+  // was happening: an "off" click's request landing after a later "on"
+  // click's request, silently leaving the saved value stuck off despite
+  // the UI having shown "on" the whole time.
+  const settingsSaveQueue = useRef<Promise<void>>(Promise.resolve());
+  function enqueueSettingsSave(fn: () => Promise<void>) {
+    settingsSaveQueue.current = settingsSaveQueue.current
+      .catch(() => {}) // a previous failure shouldn't permanently block later saves
+      .then(fn)
+      .catch((err) => console.error('Settings save failed:', err));
+    return settingsSaveQueue.current;
+  }
   const [digestGenerationError, setDigestGenerationError] = useState<string | null>(null);
   const [mfaNeedsVerification, setMfaNeedsVerification] = useState(false);
   const autoRetriedAuthError = useRef(false);
@@ -263,46 +279,58 @@ export default function App() {
 
   async function saveTextSize(size: 'compact' | 'default' | 'large') {
     setTextSize(size);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, text_size: size });
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, text_size: size });
+    });
   }
 
   async function saveHandwrittenFont(font: 'none' | 'caveat' | 'architects-daughter' | 'patrick-hand') {
     setHandwrittenFont(font);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, handwritten_font: font });
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, handwritten_font: font });
+    });
   }
 
   async function saveTheme(id: string) {
     setTheme(id);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, theme: id });
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, theme: id });
+    });
   }
 
   async function saveDisplayName(name: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     const trimmed = name.trim();
     if (!trimmed) return;
-    await supabase.from('settings').upsert({ user_id: user.id, display_name: trimmed });
     setDisplayName(trimmed);
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, display_name: trimmed });
+    });
   }
 
   async function saveFridayDigestEnabled(enabled: boolean) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, friday_digest_enabled: enabled });
     setFridayDigestEnabled(enabled);
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, friday_digest_enabled: enabled });
+    });
   }
 
   async function saveSundayWrapEnabled(enabled: boolean) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, sunday_wrap_enabled: enabled });
     setSundayWrapEnabled(enabled);
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, sunday_wrap_enabled: enabled });
+    });
   }
 
   async function generateInsights() {
@@ -505,17 +533,21 @@ export default function App() {
   }
 
   async function saveMonthlyPot(n: number) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, monthly_pot: n });
     setMonthlyPot(n);
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, monthly_pot: n });
+    });
   }
 
   async function saveApiKey(k: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('settings').upsert({ user_id: user.id, claude_api_key: k });
     setApiKey(k);
+    await enqueueSettingsSave(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('settings').upsert({ user_id: user.id, claude_api_key: k });
+    });
   }
 
   async function addReflection(r: { good: string; regret: string; wish: string }) {
