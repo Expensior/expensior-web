@@ -602,6 +602,34 @@ confirmation. **Verify all of these live before considering them closed.**
   blocker on diagnosing this further without more information than a
   screenshot of the normal app view can provide.
 
+- **Patterns tab's "Monthly pot burn-down" warning showed an absurd
+  projection right at a month boundary — not actually a date bug (this
+  session)**: user reported it looking like it "doesn't think a new month
+  has started," seeing something like "you'll finish ₹18,48,769 over."
+  Traced the exact formula: `projected = (monthSpent / dayOfMonth) *
+  daysInMonth`. The date filtering feeding `monthSpent` is actually correct
+  (uses real `now`, correctly scoped to the current month) — the real
+  problem is the formula itself breaking down when `dayOfMonth` is very
+  small. On day 1 of any month, a single transaction (rent, a big one-off
+  purchase) gets linearly extrapolated as if that exact amount repeats
+  every day for the rest of the month. Verified this precisely: reverse-
+  engineered `monthSpent` from the reported percentage breakdown, ran it
+  through the actual formula with `dayOfMonth=1`, and the result matched
+  the user's reported number almost exactly. This isn't a date-handling
+  bug in the traditional sense; it only ever surfaces at a month boundary
+  because that's the only time "days elapsed" is small enough to produce
+  nonsense, which is exactly why it read as a date bug to the user even
+  though the dates themselves were being handled correctly.
+  **Fix**: the warning banner (not the progress bar itself, which is fine
+  to always show since it's actual spend vs. pot, not a projection) now
+  only appears once `dayOfMonth >= 4`. **Being honest about this number**:
+  unlike most fixes this session, 4 isn't a precisely computed optimal
+  threshold — there's no single mathematically "correct" answer to "how
+  many days of data is enough to trust a linear extrapolation," since even
+  day 4 could still include one unusually large early transaction. It's a
+  reasonable, modest heuristic (roughly the first 13% of a 31-day month),
+  not a derived constant — worth knowing if this ever needs revisiting.
+
 - **Gmail "access expired" was a dead end — no way to act on it (this
   session)**: user reported not seeing a "Connect Gmail" button; turned out
   Gmail was already connected from earlier in the build, but the token had
